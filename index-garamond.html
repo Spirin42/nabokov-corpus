@@ -1,0 +1,952 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="robots" content="noindex">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light">
+<title>Корпус Набокова</title>
+<link rel="icon" type="image/svg+xml" sizes="any" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32' shape-rendering='crispEdges'><rect width='32' height='32'/><g fill='%23fff'><rect x='8' y='7' width='4' height='18'/><rect x='20' y='7' width='4' height='18'/><rect x='6' y='7' width='8' height='2'/><rect x='18' y='7' width='8' height='2'/><rect x='6' y='23' width='8' height='2'/><rect x='18' y='23' width='8' height='2'/><rect x='12' y='15' width='8' height='2'/></g></svg>">
+<link rel="icon" type="image/png" sizes="64x64" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAAAAACPAi4CAAAAOUlEQVR42u3WsQoAIAhAQf//p2uNIHIr9G4UeZODEcCHxuY2rxhYl7NzAYHqgZNOAXcg0DngPwCemhyH/R/A5rmJAAAAAElFTkSuQmCC">
+<script>document.documentElement.classList.add('js')</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400..800;1,400&family=Inter:wght@300;400;500&family=Noto+Serif+Display:wght@300..900&family=IBM+Plex+Mono:wght@400&display=swap">
+<style>
+  :root {
+    --bg: #fff;
+    --ink: #000;
+    --muted: #6b6b6b;
+    --thin: #e0e0e0;
+    --line: #000;
+    --display: "Noto Serif Display", "Noto Serif", Georgia, serif;   /* заголовок, подзаголовки, подписи */
+    --text: "EB Garamond", Georgia, serif;                           /* тексты */
+    --sans: "Inter", "Helvetica Neue", Arial, sans-serif;            /* цифры и обозначения */
+    --mono: "IBM Plex Mono", "PT Mono", Menlo, monospace;            /* слова в примерах длин: ширина = число букв */
+    --pad: clamp(16px, 1.8vw, 28px);
+    --gap: clamp(24px, 3vw, 48px);
+    --ease: cubic-bezier(.2, .75, .2, 1);
+  }
+  * { box-sizing: border-box; }
+  html { background: var(--bg); color: var(--ink); -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    padding: 12px;            /* поле — снаружи рамки и в целых пикселях: линейки ложатся ровно */
+    background: var(--bg);
+    color: var(--ink);
+    font: 18px/1.5 var(--text);
+    font-kerning: normal;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+  }
+  @media (min-width: 900px) { body { padding: 24px; } }
+  ::selection { background: #000; color: #fff; }
+  .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+
+  /* рамка: две вертикальные линейки по краям, горизонтальные — между этажами; внутри этажей линеек нет */
+  .frame { margin: 0; padding: 0; border: 1px solid var(--line); }
+  .floor { display: grid; grid-template-columns: minmax(0, 1fr); gap: 22px var(--gap); padding: var(--pad); }
+  .floor + .floor { border-top: 1px solid var(--line); }
+  @media (min-width: 900px) {
+    .floor.two { grid-template-columns: minmax(0, 1fr) minmax(250px, 24%); }
+    .two > .text { grid-column: 1; grid-row: 1; }
+    .two > .data { grid-column: 2; grid-row: 1; }
+  }
+  .wide, .sign { grid-column: 1 / -1; }
+  .floor > * { min-width: 0; }   /* ячейка сжимается: широкое содержимое (таблица примеров) листается внутри себя */
+
+  .sub-h { margin: 0 0 22px; font: 400 clamp(26px, 2.3vw, 38px)/1.1 var(--display); }
+  /* подпись произведения — всегда левый нижний угол этажа */
+  .sign { justify-self: start; align-self: end; margin: 6px 0 0; font: 400 clamp(22px, 1.9vw, 30px)/1.2 var(--display); }
+  .sign-d { margin-left: .35em; font: 400 15px/1 var(--sans); color: var(--muted); }   /* дескриптор: жанр — обозначение, без засечек */
+  /* шапка этажа: подзаголовок слева, число справа */
+  .head { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; flex-wrap: wrap; }
+  .head .sub-h { margin: 0; }
+  .head-num { white-space: nowrap; }
+  .head-num .figure { display: inline; }
+  .head-num .unit { display: inline; margin-left: 8px; }
+
+  /* цифры и обозначения — без засечек; крупные числа с пропорциональными цифрами */
+  .figure { font: 300 clamp(46px, 4.4vw, 76px)/1 var(--sans); white-space: nowrap; }
+  .figure + .unit + .figure { margin-top: 20px; }
+  .unit { margin-top: 6px; font: 400 14px/1.3 var(--sans); color: var(--muted); }
+  .pair2 { margin-top: 18px; white-space: nowrap; }
+  .fig2 { font: 300 28px/1 var(--sans); }
+  .pair2 .unit { display: inline; margin-left: 6px; }
+  .num, .nb { white-space: nowrap; }   /* число не рвётся переносом */
+  .cap { margin: 0 0 8px; font: 500 13px/1.3 var(--sans); }
+
+  /* 1. заголовок, абзац-пояснение и сводка */
+  .hero .text { align-self: end; }
+  .title { margin: 0; font: 400 19vw/.9 var(--display); }
+  .title .line { display: block; white-space: nowrap; }
+  @media (min-width: 900px) { .title { font-size: 12vw; } }
+  .intro { margin: 26px 0 0; max-width: 34em; font: 400 clamp(18px, 1.4vw, 23px)/1.28 var(--text); }
+  .tally { border-collapse: collapse; }
+  .tally td { padding: 2px 0; vertical-align: baseline; }
+  .tally .n { padding-right: 10px; text-align: right; font: 300 26px/1.25 var(--sans); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .tally .l { font: 400 15px/1.25 var(--sans); color: var(--muted); }
+  .tally tbody + tbody tr:first-child td { padding-top: 18px; }
+
+  /* 2. самое длинное слово — по центру крупного овала из своего текста */
+  .lw-body { display: grid; grid-template-columns: minmax(0, 1fr); padding: 8px 0; }
+  .oval { position: relative; margin: 0; font: 400 20px/1.42 var(--text); color: var(--ink); text-align: center; }
+  /* к краям эллипса текст гаснет: маска на каждой строке, кроме строк слова; центр и радиусы ставит JS */
+  .oval.laid .ol:not(.mid) {
+    -webkit-mask-image: radial-gradient(ellipse var(--rx) var(--ry) at 50% var(--cy), #000 38%, rgba(0,0,0,.82) 56%, rgba(0,0,0,.5) 72%, rgba(0,0,0,.22) 86%, rgba(0,0,0,.07) 100%);
+    mask-image: radial-gradient(ellipse var(--rx) var(--ry) at 50% var(--cy), #000 38%, rgba(0,0,0,.82) 56%, rgba(0,0,0,.5) 72%, rgba(0,0,0,.22) 86%, rgba(0,0,0,.07) 100%);
+  }
+  .oval .lw { color: var(--ink); font-weight: 800; }
+  .oval:not(.laid) .lw { overflow-wrap: anywhere; }   /* без JS слово переносится, а не распирает экран */
+  .oval .x { display: none; }                         /* запас текста — только для раскладки */
+  .oval.laid .x { display: inline; }
+  .oval .ol { display: block; white-space: nowrap; }
+  .oval .midbox { display: block; }
+  .oval .rest, .oval .measure { position: absolute; left: -99999px; top: 0; visibility: hidden; white-space: nowrap; }
+
+  /* 3. рекордное предложение с окружением */
+  .rec-text p { margin: 0 0 .6em; max-width: 40em; font: 400 clamp(20px, 1.75vw, 30px)/1.55 var(--text); hyphens: auto; }
+  .rec-text p:last-child { margin-bottom: 0; }
+  .rec { color: var(--ink); font-weight: 500; }
+  .ls-text .pm.hit { color: #fff; background: #000; outline: 2px solid #000; }
+  .ls-text.hl .w, .ls-text.hl .w.on { color: #d2d2d2; }
+  .progress, .counter { display: none; }
+  .punct { width: 100%; margin-top: 26px; border-collapse: collapse; }
+  .punct td, .punct th { padding: 5px 0 4px; border-bottom: 1px solid var(--thin); }
+  .punct tr:first-child > * { border-top: 1px solid var(--line); }
+  .punct tr:last-child > * { border-bottom-color: var(--line); }
+  .punct .g { width: 2.2em; font: 400 22px/1 var(--text); }
+  .punct th { text-align: left; font: 400 13px/1.2 var(--sans); }
+  .punct .n { text-align: right; font: 400 16px/1 var(--sans); font-variant-numeric: tabular-nums; }
+  .punct .total th, .punct .total .n { font-weight: 500; }
+  .punct tr[data-k] { cursor: pointer; transition: background .2s ease; }
+  .punct tr[data-k]:hover, .punct tr.on { background: #f1f1f1; }
+  .punct tr.pin { background: #000; }
+  .punct tr.pin > * { color: #fff; }
+  @media (min-width: 900px) { .ls-floor .data-in { position: sticky; top: 16px; } }
+
+  /* полосы: подпись — полоса — число [— процент] */
+  .bars + .bars { margin-top: 26px; }
+  .br { display: grid; grid-template-columns: minmax(120px, 32%) minmax(0, 1fr) auto; align-items: center; column-gap: 14px; padding: 4px 0; }
+  .br.p4 { grid-template-columns: minmax(120px, 32%) minmax(0, 1fr) 7.5ch 9ch; }
+  .bl { font: 400 14px/1.3 var(--sans); }
+  .bl.cname { font: 400 20px/1.2 var(--text); }
+  .bx { display: block; margin-top: 2px; max-width: 52ch; font: 400 12.5px/1.35 var(--sans); color: var(--muted); }   /* пояснение термина */
+  /* отрицательная разрядка — только цифрам; текст и овал без разрядки */
+  .num { letter-spacing: -.02em; }
+  .figure .num { letter-spacing: -.04em; }
+  .fig2 .num, .tally .n .num { letter-spacing: -.03em; }
+  .grid .gl b, .xax span, .examples td.ex-n, .counter, .nb { letter-spacing: -.02em; }   /* только числа: шапка «букв | раз» — текст */
+  .bt { position: relative; height: 10px; }
+  .bt i { position: absolute; left: 0; top: 0; bottom: 0; width: calc(var(--w) * 100%); min-width: 1px; background: var(--c, var(--ink)); border-radius: 0 2px 2px 0; transform-origin: left; }
+  .bt i.lt { box-shadow: inset 0 0 0 1px var(--ink); }   /* светлый цвет — волосяной контур, иначе полоса пропадёт на белом */
+  .bt i.ph { background-color: var(--c); background-repeat: no-repeat; background-position: 0 50%; background-size: calc(100% / var(--w)) auto; }
+  .bt i.ph.tn { background-color: var(--tint); background-blend-mode: multiply; }   /* тонировка снимка: фото × тон */
+  .bn { font: 400 15px/1.3 var(--sans); font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
+  .bp { font: 400 15px/1.3 var(--sans); font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; color: var(--muted); }
+  @media (max-width: 599.98px) {
+    .br, .br.p4 { grid-template-columns: minmax(0, 1fr) auto auto; row-gap: 4px; }
+    .br .bt { grid-column: 1 / -1; grid-row: 2; }
+  }
+
+  /* гистограммы */
+  .hist { margin: 0; }
+  .hist + .hist, .examples + .hist { margin-top: 34px; }
+  .hstats { display: flex; flex-wrap: wrap; gap: 4px 20px; margin: 0 0 12px; font: 400 13px/1.3 var(--sans); }
+  .hs-l { color: var(--muted); }
+  .hstats .num { font-variant-numeric: tabular-nums; }
+  .plot { position: relative; height: 210px; margin-left: 52px; }
+  .grid .gl { position: absolute; left: 0; right: 0; bottom: calc(var(--y) * 100%); border-top: 1px solid var(--thin); }
+  .grid .gl b { position: absolute; right: 100%; top: 0; transform: translateY(-50%); padding-right: 8px; font: 400 11px/1 var(--sans); color: var(--muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .cols { position: absolute; inset: 0; display: flex; }
+  .cols i { position: relative; flex: 1 1 0; height: 100%; }
+  .cols i::before {
+    content: ""; position: absolute; bottom: 0; left: 50%;
+    width: max(1px, min(calc(100% - 2px), 24px)); height: calc(var(--h) * 100%);
+    transform: translateX(-50%); background: var(--ink); border-radius: 2px 2px 0 0;
+  }
+  .cols i.nz::before { min-height: 1px; }
+  /* столбик уже 3px (телефон, 263 длины): сплошной силуэт без зазоров — пиксельные полоски с зазорами рябят серым */
+  .plot.dense .cols i::before { left: 0; transform: none; width: calc(100% + .5px); border-radius: 0; }
+  .plot.act .cols i::before { background: #bdbdbd; }
+  .plot.act .cols i.on::before { background: var(--ink); }
+  .tip { position: absolute; bottom: calc(100% + 6px); transform: translateX(-50%); padding: 4px 8px; background: #000; color: #fff; font: 400 12px/1.3 var(--sans); white-space: nowrap; pointer-events: none; z-index: 2; }
+  .tip .tip-e { display: block; }   /* пример — отдельной строкой */
+  .xax { position: relative; height: 22px; margin-left: 52px; border-top: 1px solid var(--line); }
+  .xax span { position: absolute; top: 5px; left: calc(var(--x) * 100%); transform: translateX(-50%); font: 400 11px/1 var(--sans); color: var(--muted); }
+  /* примеры под гистограммой длин слов: длина — самое частое слово — сколько раз */
+  .ex-wrap { margin: 22px 0 0; overflow-x: auto; }   /* на узком экране таблица листается внутри себя, страница — нет */
+  .examples { border-collapse: collapse; }
+  .examples caption { text-align: left; }
+  .examples td, .examples th { padding: 1px 16px 1px 0; vertical-align: baseline; }
+  .examples th { text-align: left; }
+  .examples .ex-n, .examples .ex-c { text-align: right; font: 400 13px/1.3 var(--sans); color: var(--muted); font-variant-numeric: tabular-nums; }
+  .examples .ex-w { font: 400 20px/1.3 var(--text); white-space: nowrap; }   /* слово не переносится — даже 63 буквы */
+  .examples.mono td.ex-w { font: 400 17px/1.45 var(--mono); }   /* моноширинный: ширина слова — число его букв, лесенка */
+  .examples .ex-h th { padding-bottom: 6px; font: 400 12px/1.3 var(--sans); color: var(--muted); }   /* шапка — подписи: без засечек, все три */
+  .examples tr[data-x] { transition: background .15s ease; }
+  .examples tr.on { background: #f1f1f1; }
+  .examples tr.on .ex-n, .examples tr.on .ex-c { color: var(--ink); }
+
+  /* цвета */
+  .color-word { margin: 0; font: 400 clamp(64px, 9vw, 160px)/.95 var(--display); overflow-wrap: anywhere; }
+  .color-word.big { font-weight: 800; font-size: clamp(64px, 19vw, 360px); line-height: .9; padding-bottom: .2em; color: var(--c, var(--ink)); }   /* запас под хвост «р» */
+  .color-word.big.lt { -webkit-text-stroke: 1px var(--ink); }
+  .colorbars .br { grid-template-columns: max-content minmax(0, 1fr) auto; column-gap: 12px; }   /* полоса сразу за подписью */
+  .colorbars .bt { height: 24px; }
+
+  /* палитра: холст с точками и градиентом; без JS — полоса пропорций */
+  .pal-canvas { display: none; width: 100%; aspect-ratio: 2.2 / 1; max-height: calc(100vh - 210px); min-height: 260px; touch-action: pan-y; }
+  .js .pal-canvas { display: block; }
+  .js .pal-strip { display: none; }
+  @media (max-width: 599.98px) { .pal-canvas { aspect-ratio: 4 / 5; max-height: none; } }
+  .pal-strip { display: flex; height: 56px; }
+  .pal-strip i { flex: var(--k) 1 0; min-width: 1px; background: var(--c); }
+  .pal-strip i.lt { box-shadow: inset 0 1px 0 var(--thin), inset 0 -1px 0 var(--thin); }
+  .pal-read { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; min-height: 32px; margin: 12px 0 0; font: 400 14px/1.3 var(--sans); color: var(--muted); }
+  .pal-on { display: inline-flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; }
+  .pal-on[hidden], .pal-def[hidden] { display: none; }
+  .pal-sw { width: 11px; height: 11px; border-radius: 50%; background: var(--c); align-self: center; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .18); }
+  .pal-n { font: 400 20px/1.2 var(--text); color: var(--ink); }
+  .pal-k { color: var(--ink); }
+
+  /* движение — только при js; без js всё видно сразу */
+  .js .reveal { opacity: 0; transform: translateY(12px); transition: opacity .8s var(--ease), transform .8s var(--ease); }
+  .js .reveal.is-in { opacity: 1; transform: none; }
+  .js .reveal .bt i { clip-path: inset(0 100% 0 0); transition: clip-path 1.1s var(--ease) .15s; }
+  .js .reveal.is-in .bt i { clip-path: inset(0); }
+  .js .reveal .cols i::before { height: 0; transition: height .9s var(--ease); }
+  .js .reveal.is-in .cols i::before { height: calc(var(--h) * 100%); }
+  .js .title .line { opacity: 0; transform: translateY(.12em); transition: opacity 1.1s var(--ease), transform 1.1s var(--ease); }
+  .js .title .line + .line { transition-delay: .1s; }
+  .js .hero.is-in .title .line { opacity: 1; transform: none; }
+  .js .oval.laid .ol { opacity: 0; transition: opacity .7s ease calc(var(--k) * 45ms); }
+  .js .oval.laid.is-in .ol { opacity: 1; }
+  .js .ls-text .w { color: #a6a6a6; transition: color .4s ease; }   /* темнее окружения */
+  .js .ls-text .w.on { color: var(--ink); }
+  .js .progress { display: block; position: relative; height: 1px; margin-top: 22px; background: var(--thin); }
+  .js .progress i { position: absolute; inset: 0 auto 0 0; width: 0; background: var(--ink); transition: width .2s linear; }
+  .js .counter { display: block; margin-top: 7px; font: 400 13px/1.3 var(--sans); color: var(--muted); font-variant-numeric: tabular-nums; }
+  .js .counter b { font-weight: 500; color: var(--ink); }
+  @media (prefers-reduced-motion: reduce) {
+    .js .reveal, .js .title .line, .js .reveal .bt i, .js .oval.laid .ol { opacity: 1; transform: none; clip-path: none; transition: none; }
+    .js .reveal .cols i::before { height: calc(var(--h) * 100%); transition: none; }
+    .js .ls-text .w { color: var(--ink); transition: none; }
+  }
+</style>
+</head>
+<body>
+<main class="frame">
+
+  <section class="floor two hero">
+    <div class="text">
+      <h1 class="title"><span class="line"><span class="ink">Корпус</span></span><span class="line"><span class="ink">Набокова</span></span></h1>
+      <p class="intro">Набоков писал на оригинальном русском языке, который упразднили власти Советов. В этой работе подсчитана статистика в редакции набоковских изданий, подготовленных для современного носителя русского языка.</p>
+    </div>
+    <div class="data">
+      <table class="tally"><tbody><tr><td class="n"><span class="num" data-value="1">1</span></td><td class="l">роман</td></tr><tr><td class="n"><span class="num" data-value="0">0</span></td><td class="l">повестей</td></tr><tr><td class="n"><span class="num" data-value="0">0</span></td><td class="l">рассказов</td></tr></tbody><tbody><tr><td class="n"><span class="num" data-value="713243">713 243</span></td><td class="l">символа</td></tr><tr><td class="n"><span class="num" data-value="103328">103 328</span></td><td class="l">слов</td></tr><tr><td class="n"><span class="num" data-value="4539">4539</span></td><td class="l">предложений</td></tr></tbody></table>
+    </div>
+  </section>
+
+  <section class="floor lw-floor">
+    <div class="head">
+      <h2 class="sub-h">Самое длинное слово</h2>
+      <div class="head-num"><span class="figure"><span class="num" data-value="63">63</span></span><span class="unit">буквы</span></div>
+    </div>
+    <div class="lw-body">
+      <p class="oval" aria-hidden="true"><span class="ow x"><span class="at" data-s="1">пос</span><span class="at">ле</span></span> <span class="ow x"><span class="at" data-s="1">ко</span><span class="at">то</span><span class="at">ро</span><span class="at">го</span></span> <span class="ow x"><span class="at" data-s="1">дол</span><span class="at">женс</span><span class="at">тво</span><span class="at">ва</span><span class="at">ло</span></span> <span class="ow x"><span class="at" data-s="1">прис</span><span class="at">ту</span><span class="at">пить</span></span> <span class="ow x"><span class="at" data-s="1">к</span></span> <span class="ow x"><span class="at" data-s="1">вы</span><span class="at">бо</span><span class="at">рам.</span></span> <span class="ow x"><span class="at" data-s="1">Ши</span><span class="at">рин</span></span> <span class="ow x"><span class="at" data-s="1">мет</span><span class="at">нул</span><span class="at">ся</span></span> <span class="ow x"><span class="at" data-s="1">к</span></span> <span class="ow x"><span class="at" data-s="1">Ва</span><span class="at">силь</span><span class="at">еву</span></span> <span class="ow x"><span class="at" data-s="1">и</span></span> <span class="ow x"><span class="at" data-s="1">при</span><span class="at">нял</span><span class="at">ся</span></span> <span class="ow x"><span class="at" data-s="1">его</span></span> <span class="ow x"><span class="at" data-s="1">уго</span><span class="at">ва</span><span class="at">ри</span><span class="at">вать</span></span> <span class="ow x"><span class="at" data-s="1">в</span></span> <span class="ow x"><span class="at" data-s="1">уг</span><span class="at">лу,</span></span> <span class="ow x"><span class="at" data-s="1">а</span></span> <span class="ow x"><span class="at" data-s="1">Фе</span><span class="at">дор</span></span> <span class="ow x"><span class="at" data-s="1">Кон</span><span class="at">стан</span><span class="at">ти</span><span class="at">но</span><span class="at">вич,</span></span> <span class="ow x"><span class="at" data-s="1">по</span><span class="at">чувс</span><span class="at">тво</span><span class="at">вав</span></span> <span class="ow x"><span class="at" data-s="1">вне</span><span class="at">зап</span><span class="at">ную</span></span> <span class="ow x"><span class="at" data-s="1">ску</span><span class="at">ку,</span></span> <span class="ow x"><span class="at" data-s="1">на</span><span class="at">шел</span></span> <span class="ow x"><span class="at" data-s="1">свой</span></span> <span class="ow x"><span class="at" data-s="1">ма</span><span class="at">кин</span><span class="at">тош</span></span> <span class="ow x"><span class="at" data-s="1">и</span></span> <span class="ow x"><span class="at" data-s="1">выб</span><span class="at">рал</span><span class="at">ся</span></span> <span class="ow x"><span class="at" data-s="1">на</span></span> <span class="ow x"><span class="at" data-s="1">ули</span><span class="at">цу.</span></span> <span class="ow x"><span class="at" data-s="1">Он</span></span> <span class="ow x"><span class="at" data-s="1">сер</span><span class="at">дил</span><span class="at">ся</span></span> <span class="ow x"><span class="at" data-s="1">на</span></span> <span class="ow x"><span class="at" data-s="1">се</span><span class="at">бя:</span></span> <span class="ow x"><span class="at" data-s="1">ра</span><span class="at">ди</span></span> <span class="ow x"><span class="at" data-s="1">это</span><span class="at">го</span></span> <span class="ow x"><span class="at" data-s="1">ди</span><span class="at">ко</span><span class="at">го</span></span> <span class="ow x"><span class="at" data-s="1">ди</span><span class="at">вер</span><span class="at">тис</span><span class="at">мен</span><span class="at">та</span></span> <span class="ow x"><span class="at" data-s="1">по</span><span class="at">жер</span><span class="at">тво</span><span class="at">вать</span></span> <span class="ow x"><span class="at" data-s="1">всег</span><span class="at">даш</span><span class="at">ним,</span></span> <span class="ow x"><span class="at" data-s="1">как</span></span> <span class="ow x"><span class="at" data-s="1">звез</span><span class="at">да,</span></span> <span class="ow x"><span class="at" data-s="1">сви</span><span class="at">да</span><span class="at">ни</span><span class="at">ем</span></span> <span class="ow x"><span class="at" data-s="1">с</span></span> <span class="ow x"><span class="at" data-s="1">Зи</span><span class="at">ной!</span></span> <span class="ow x"><span class="at" data-s="1">Же</span><span class="at">ла</span><span class="at">ние</span></span> <span class="ow x"><span class="at" data-s="1">тот</span><span class="at">час</span></span> <span class="ow x"><span class="at" data-s="1">ее</span></span> <span class="ow x"><span class="at" data-s="1">уви</span><span class="at">деть</span></span> <span class="ow x"><span class="at" data-s="1">его</span></span> <span class="ow x"><span class="at" data-s="1">му</span><span class="at">чи</span><span class="at">ло</span></span> <span class="ow x"><span class="at" data-s="1">сво</span><span class="at">ей</span></span> <span class="ow x"><span class="at" data-s="1">па</span><span class="at">ра</span><span class="at">док</span><span class="at">саль</span><span class="at">ной</span></span> <span class="ow x"><span class="at" data-s="1">не</span><span class="at">осу</span><span class="at">щес</span><span class="at">тви</span><span class="at">мостью:</span></span> <span class="ow x"><span class="at" data-s="1">не</span></span> <span class="ow x"><span class="at" data-s="1">спи</span></span> <span class="ow x"><span class="at" data-s="1">она</span></span> <span class="ow x"><span class="at" data-s="1">в</span></span> <span class="ow x"><span class="at" data-s="1">двух</span></span> <span class="ow x"><span class="at" data-s="1">с</span></span> <span class="ow x"><span class="at" data-s="1">по</span><span class="at">ло</span><span class="at">ви</span><span class="at">ной</span></span> <span class="ow x"><span class="at" data-s="1">са</span><span class="at">же</span><span class="at">нях</span></span> <span class="ow x"><span class="at" data-s="1">от</span></span> <span class="ow x"><span class="at" data-s="1">его</span></span> <span class="ow x"><span class="at" data-s="1">из</span><span class="at">го</span><span class="at">ловья,</span></span> <span class="ow x"><span class="at" data-s="1">дос</span><span class="at">туп</span></span> <span class="ow x"><span class="at" data-s="1">к</span></span> <span class="ow x"><span class="at" data-s="1">ней</span></span> <span class="ow x"><span class="at" data-s="1">был</span></span> <span class="ow x"><span class="at" data-s="1">бы</span></span> <span class="ow x"><span class="at" data-s="1">лег</span><span class="at">че.</span></span> <span class="ow x"><span class="at" data-s="1">По</span><span class="at">тя</span><span class="at">нул</span><span class="at">ся</span></span> <span class="ow x"><span class="at" data-s="1">по</span></span> <span class="ow x"><span class="at" data-s="1">ви</span><span class="at">аду</span><span class="at">ку</span></span> <span class="ow x"><span class="at" data-s="1">по</span><span class="at">езд:</span></span> <span class="ow x"><span class="at" data-s="1">зе</span><span class="at">вок</span></span> <span class="ow x"><span class="at" data-s="1">да</span><span class="at">мы,</span></span> <span class="ow x"><span class="at" data-s="1">на</span><span class="at">чав</span><span class="at">ший</span><span class="at">ся</span></span> <span class="ow x"><span class="at" data-s="1">в</span></span> <span class="ow x"><span class="at" data-s="1">ос</span><span class="at">ве</span><span class="at">щен</span><span class="at">ном</span></span> <span class="ow x"><span class="at" data-s="1">ок</span><span class="at">не</span></span> <span class="ow x"><span class="at" data-s="1">го</span><span class="at">лов</span><span class="at">но</span><span class="at">го</span></span> <span class="ow x"><span class="at" data-s="1">ва</span><span class="at">го</span><span class="at">на,</span></span> <span class="ow x"><span class="at" data-s="1">был</span></span> <span class="ow x"><span class="at" data-s="1">за</span><span class="at">кон</span><span class="at">чен</span></span> <span class="ow x"><span class="at" data-s="1">дру</span><span class="at">гою</span></span> <span class="ow x"><span class="at" data-s="2">—</span></span> <span class="ow x"><span class="at" data-s="1">в</span></span> <span class="ow x"><span class="at" data-s="1">пос</span><span class="at">лед</span><span class="at">нем.</span></span> <span class="ow x"><span class="at" data-s="1">Фе</span><span class="at">дор</span></span> <span class="ow x"><span class="at" data-s="1">Кон</span><span class="at">стан</span><span class="at">ти</span><span class="at">но</span><span class="at">вич</span></span> <span class="ow x"><span class="at" data-s="1">ти</span><span class="at">хо</span></span> <span class="ow x"><span class="at" data-s="1">по</span><span class="at">шел</span></span> <span class="ow x"><span class="at" data-s="1">к</span></span> <span class="ow x"><span class="at" data-s="1">трам</span><span class="at">вай</span><span class="at">ной</span></span> <span class="ow x"><span class="at" data-s="1">ос</span><span class="at">та</span><span class="at">нов</span><span class="at">ке,</span></span> <span class="ow x"><span class="at" data-s="1">вдоль</span></span> <span class="ow x"><span class="at" data-s="1">мас</span><span class="at">ля</span><span class="at">нис</span><span class="at">то-</span><span class="at" data-e="1">чер</span><span class="at">ной,</span></span> <span class="ow x"><span class="at" data-s="1">тру</span><span class="at">бя</span><span class="at">щей</span></span> <span class="ow x"><span class="at" data-s="1">ули</span><span class="at">цы.</span></span> <span class="ow"><span class="at" data-s="1">Све</span><span class="at">то</span><span class="at">вая</span></span> <span class="ow"><span class="at" data-s="1">рек</span><span class="at">ла</span><span class="at">ма</span></span> <span class="ow"><span class="at" data-s="1">мю</span><span class="at">зик-</span><span class="at" data-e="1">хол</span><span class="at">ля</span></span> <span class="ow"><span class="at" data-s="1">взбе</span><span class="at">га</span><span class="at">ла</span></span> <span class="ow"><span class="at" data-s="1">по</span></span> <span class="ow"><span class="at" data-s="1">сту</span><span class="at">пе</span><span class="at">ням</span></span> <span class="ow"><span class="at" data-s="1">вер</span><span class="at">ти</span><span class="at">каль</span><span class="at">но</span></span> <span class="ow"><span class="at" data-s="1">рас</span><span class="at">по</span><span class="at">ло</span><span class="at">жен</span><span class="at">ных</span></span> <span class="ow"><span class="at" data-s="1">букв,</span></span> <span class="ow"><span class="at" data-s="1">они</span></span> <span class="ow"><span class="at" data-s="1">по</span><span class="at">га</span><span class="at">са</span><span class="at">ли</span></span> <span class="ow"><span class="at" data-s="1">ра</span><span class="at">зом,</span></span> <span class="ow"><span class="at" data-s="1">и</span></span> <span class="ow"><span class="at" data-s="1">сно</span><span class="at">ва</span></span> <span class="ow"><span class="at" data-s="1">свет</span></span> <span class="ow"><span class="at" data-s="1">ка</span><span class="at">раб</span><span class="at">кал</span><span class="at">ся</span></span> <span class="ow"><span class="at" data-s="1">вверх:</span></span> <span class="ow"><span class="at" data-s="1">ка</span><span class="at">кое</span></span> <span class="ow"><span class="at" data-s="1">ва</span><span class="at">ви</span><span class="at">лон</span><span class="at">ское</span></span> <span class="ow"><span class="at" data-s="1">сло</span><span class="at">во</span></span> <span class="ow"><span class="at" data-s="1">дос</span><span class="at">тиг</span><span class="at">ло</span></span> <span class="ow"><span class="at" data-s="1">бы</span></span> <span class="ow"><span class="at" data-s="1">до</span></span> <span class="ow"><span class="at" data-s="1">не</span><span class="at">бес…</span></span> <span class="ow"><span class="at" data-s="1">сбор</span><span class="at">ное</span></span> <span class="ow"><span class="at" data-s="1">наз</span><span class="at">ва</span><span class="at">ние</span></span> <span class="ow"><span class="at" data-s="1">трил</span><span class="at">ли</span><span class="at">она</span></span> <span class="ow"><span class="at" data-s="1">то</span><span class="at">нов:</span></span> <span class="ow w"><span class="lw">бриллиантоволуннолилитовосизолазоревогрозносапфиристосинелилово</span><span class="pp">,</span></span> <span class="ow"><span class="at" data-s="1">и</span></span> <span class="ow"><span class="at" data-s="1">так</span></span> <span class="ow"><span class="at" data-s="1">да</span><span class="at">лее</span></span> <span class="ow"><span class="at" data-s="2">—</span></span> <span class="ow"><span class="at" data-s="1">сколь</span><span class="at">ко</span></span> <span class="ow"><span class="at" data-s="1">еще!</span></span> <span class="ow x"><span class="at" data-s="1">Мо</span><span class="at">жет</span></span> <span class="ow x"><span class="at" data-s="1">быть,</span></span> <span class="ow x"><span class="at" data-s="1">поп</span><span class="at">ро</span><span class="at">бо</span><span class="at">вать</span></span> <span class="ow x"><span class="at" data-s="1">поз</span><span class="at">во</span><span class="at">нить?</span></span> <span class="ow x"><span class="at" data-s="1">Все</span><span class="at">го</span></span> <span class="ow x"><span class="at" data-s="1">гри</span><span class="at">вен</span><span class="at">ник</span></span> <span class="ow x"><span class="at" data-s="1">в</span></span> <span class="ow x"><span class="at" data-s="1">кар</span><span class="at">ма</span><span class="at">не,</span></span> <span class="ow x"><span class="at" data-s="1">и</span></span> <span class="ow x"><span class="at" data-s="1">на</span><span class="at">до</span></span> <span class="ow x"><span class="at" data-s="1">ре</span><span class="at">шить:</span></span> <span class="ow x"><span class="at" data-s="1">поз</span><span class="at">во</span><span class="at">нить</span></span> <span class="ow x"><span class="at" data-s="2">—</span></span> <span class="ow x"><span class="at" data-s="1">все</span></span> <span class="ow x"><span class="at" data-s="1">рав</span><span class="at">но</span></span> <span class="ow x"><span class="at" data-s="1">зна</span><span class="at">чи</span><span class="at">ло</span></span> <span class="ow x"><span class="at" data-s="1">бы</span></span> <span class="ow x"><span class="at" data-s="1">ли</span><span class="at">шить</span></span> <span class="ow x"><span class="at" data-s="1">се</span><span class="at">бя</span></span> <span class="ow x"><span class="at" data-s="1">трам</span><span class="at">вая,</span></span> <span class="ow x"><span class="at" data-s="1">но</span></span> <span class="ow x"><span class="at" data-s="1">поз</span><span class="at">во</span><span class="at">нить</span></span> <span class="ow x"><span class="at" data-s="1">впус</span><span class="at">тую,</span></span> <span class="ow x"><span class="at" data-s="1">т.</span></span> <span class="ow x"><span class="at" data-s="1">е.</span></span> <span class="ow x"><span class="at" data-s="1">не</span></span> <span class="ow x"><span class="at" data-s="1">по</span><span class="at">пасть</span></span> <span class="ow x"><span class="at" data-s="1">на</span></span> <span class="ow x"><span class="at" data-s="1">са</span><span class="at">мое</span></span> <span class="ow x"><span class="at" data-s="1">Зи</span><span class="at">ну</span></span> <span class="ow x"><span class="at" data-s="1">(звать</span></span> <span class="ow x"><span class="at" data-s="1">ее</span></span> <span class="ow x"><span class="at" data-s="1">че</span><span class="at">рез</span></span> <span class="ow x"><span class="at" data-s="1">мать</span></span> <span class="ow x"><span class="at" data-s="1">не</span></span> <span class="ow x"><span class="at" data-s="1">до</span><span class="at">пус</span><span class="at">ка</span><span class="at">лось</span></span> <span class="ow x"><span class="at" data-s="1">ко</span><span class="at">дек</span><span class="at">сом)</span></span> <span class="ow x"><span class="at" data-s="1">и</span></span> <span class="ow x"><span class="at" data-s="1">вер</span><span class="at">нуть</span><span class="at">ся</span></span> <span class="ow x"><span class="at" data-s="1">пеш</span><span class="at">ком,</span></span> <span class="ow x"><span class="at" data-s="1">бы</span><span class="at">ло</span></span> <span class="ow x"><span class="at" data-s="1">бы</span></span> <span class="ow x"><span class="at" data-s="1">че</span><span class="at">рес</span><span class="at">чур</span></span> <span class="ow x"><span class="at" data-s="1">обид</span><span class="at">но.</span></span> <span class="ow x"><span class="at" data-s="1">Рис</span><span class="at">кну.</span></span> <span class="ow x"><span class="at" data-s="1">Он</span></span> <span class="ow x"><span class="at" data-s="1">во</span><span class="at">шел</span></span> <span class="ow x"><span class="at" data-s="1">в</span></span> <span class="ow x"><span class="at" data-s="1">пив</span><span class="at">ную,</span></span> <span class="ow x"><span class="at" data-s="1">поз</span><span class="at">во</span><span class="at">нил,</span></span> <span class="ow x"><span class="at" data-s="1">и</span></span> <span class="ow x"><span class="at" data-s="1">все</span></span> <span class="ow x"><span class="at" data-s="1">кон</span><span class="at">чи</span><span class="at">лось</span></span> <span class="ow x"><span class="at" data-s="1">очень</span></span> <span class="ow x"><span class="at" data-s="1">быс</span><span class="at">тро:</span></span> <span class="ow x"><span class="at" data-s="1">по</span><span class="at">лу</span><span class="at">чил</span></span> <span class="ow x"><span class="at" data-s="1">неп</span><span class="at">ра</span><span class="at">виль</span><span class="at">ный</span></span> <span class="ow x"><span class="at" data-s="1">но</span><span class="at">мер,</span></span> <span class="ow x"><span class="at" data-s="1">по</span><span class="at">пав</span></span> <span class="ow x"><span class="at" data-s="1">как</span></span> <span class="ow x"><span class="at" data-s="1">раз</span></span> <span class="ow x"><span class="at" data-s="1">ту</span><span class="at">да,</span></span> <span class="ow x"><span class="at" data-s="1">ку</span><span class="at">да</span></span> <span class="ow x"><span class="at" data-s="1">пос</span><span class="at">то</span><span class="at">ян</span><span class="at">но</span></span> <span class="ow x"><span class="at" data-s="1">пы</span><span class="at">тал</span><span class="at">ся</span></span> <span class="ow x"><span class="at" data-s="1">по</span><span class="at">пасть</span></span> <span class="ow x"><span class="at" data-s="1">ано</span><span class="at">ним</span><span class="at">ный</span></span> <span class="ow x"><span class="at" data-s="1">рус</span><span class="at">ский,</span></span> <span class="ow x"><span class="at" data-s="1">пос</span><span class="at">то</span><span class="at">ян</span><span class="at">но</span></span> <span class="ow x"><span class="at" data-s="1">по</span><span class="at">па</span><span class="at">дав</span><span class="at">ший</span></span> <span class="ow x"><span class="at" data-s="1">к</span></span> <span class="ow x"><span class="at" data-s="1">Ще</span><span class="at">го</span><span class="at">ле</span><span class="at">вым.</span></span> <span class="ow x"><span class="at" data-s="1">Что</span></span> <span class="ow x"><span class="at" data-s="1">ж,</span></span> <span class="ow x"><span class="at" data-s="2">—</span></span> <span class="ow x"><span class="at" data-s="1">пе</span><span class="at">шед</span><span class="at">ра</span><span class="at">лом,</span></span> <span class="ow x"><span class="at" data-s="1">как</span></span> <span class="ow x"><span class="at" data-s="1">ска</span><span class="at">зал</span></span> <span class="ow x"><span class="at" data-s="1">бы</span></span> <span class="ow x"><span class="at" data-s="1">Бо</span><span class="at">рис</span></span> <span class="ow x"><span class="at" data-s="1">Ива</span><span class="at">но</span><span class="at">вич.</span></span> <span class="ow x"><span class="at" data-s="1">На</span></span> <span class="ow x"><span class="at" data-s="1">сле</span><span class="at">ду</span><span class="at">ющем</span></span> <span class="ow x"><span class="at" data-s="1">уг</span><span class="at">лу</span></span> <span class="ow x"><span class="at" data-s="1">ав</span><span class="at">то</span><span class="at">ма</span><span class="at">ти</span><span class="at">чес</span><span class="at">ки</span></span> <span class="ow x"><span class="at" data-s="1">за</span><span class="at">ра</span><span class="at">бо</span><span class="at">тал</span></span> <span class="ow x"><span class="at" data-s="1">при</span></span> <span class="ow x"><span class="at" data-s="1">его</span></span> <span class="ow x"><span class="at" data-s="1">приб</span><span class="at">ли</span><span class="at">же</span><span class="at">нии</span></span> <span class="ow x"><span class="at" data-s="1">ку</span><span class="at">коль</span><span class="at">ный</span></span> <span class="ow x"><span class="at" data-s="1">ме</span><span class="at">ха</span><span class="at">низм</span></span> <span class="ow x"><span class="at" data-s="1">прос</span><span class="at">ти</span><span class="at">ту</span><span class="at">ток,</span></span> <span class="ow x"><span class="at" data-s="1">всег</span><span class="at">да</span></span> <span class="ow x"><span class="at" data-s="1">сто</span><span class="at">ро</span><span class="at">жив</span><span class="at">ших</span></span> <span class="ow x"><span class="at" data-s="1">там.</span></span> <span class="ow x"><span class="at" data-s="1">Од</span><span class="at">на</span></span> <span class="ow x"><span class="at" data-s="1">да</span><span class="at">же</span></span> <span class="ow x"><span class="at" data-s="1">изоб</span><span class="at">ра</span><span class="at">зи</span><span class="at">ла</span></span> <span class="ow x"><span class="at" data-s="1">да</span><span class="at">му,</span></span> <span class="ow x"><span class="at" data-s="1">за</span><span class="at">меш</span><span class="at">кав</span><span class="at">шу</span><span class="at">юся</span></span> <span class="ow x"><span class="at" data-s="1">у</span></span> <span class="ow x"><span class="at" data-s="1">вит</span><span class="at">ри</span><span class="at">ны,</span></span> <span class="ow x"><span class="at" data-s="1">и</span></span> <span class="ow x"><span class="at" data-s="1">бы</span><span class="at">ло</span></span> <span class="ow x"><span class="at" data-s="1">грус</span><span class="at">тно</span></span> <span class="ow x"><span class="at" data-s="1">ду</span><span class="at">мать,</span></span> <span class="ow x"><span class="at" data-s="1">что</span></span> <span class="ow x"><span class="at" data-s="1">эти</span></span> <span class="ow x"><span class="at" data-s="1">ро</span><span class="at">зо</span><span class="at">вые</span></span> <span class="ow x"><span class="at" data-s="1">кор</span><span class="at">се</span><span class="at">ты</span></span> <span class="ow x"><span class="at" data-s="1">на</span></span> <span class="ow x"><span class="at" data-s="1">зо</span><span class="at">ло</span><span class="at">тых</span></span> <span class="ow x"><span class="at" data-s="1">бол</span><span class="at">ван</span><span class="at">ках</span></span> <span class="ow x"><span class="at" data-s="1">она</span></span> <span class="ow x"><span class="at" data-s="1">зна</span><span class="at">ет</span></span> <span class="ow x"><span class="at" data-s="1">на</span><span class="at">изусть,</span></span> <span class="ow x"><span class="at" data-s="1">на</span><span class="at">изусть…</span></span> <span class="ow x"><span class="at" data-s="1">«Ду</span><span class="at">сень</span><span class="at">ка»,</span></span> <span class="ow x"><span class="at" data-s="2">—</span></span> <span class="ow x"><span class="at" data-s="1">ска</span><span class="at">за</span><span class="at">ла</span></span> <span class="ow x"><span class="at" data-s="1">дру</span><span class="at">гая</span></span> <span class="ow x"><span class="at" data-s="1">с</span></span> <span class="ow x"><span class="at" data-s="1">воп</span><span class="at">ро</span><span class="at">си</span><span class="at">тель</span><span class="at">ным</span></span> <span class="ow x"><span class="at" data-s="1">смеш</span><span class="at">ком.</span></span> <span class="ow x"><span class="at" data-s="1">Ночь</span></span> <span class="ow x"><span class="at" data-s="1">бы</span><span class="at">ла</span></span> <span class="ow x"><span class="at" data-s="1">теп</span><span class="at">лая,</span></span> <span class="ow x"><span class="at" data-s="1">с</span></span> <span class="ow x"><span class="at" data-s="1">пылью</span></span> <span class="ow x"><span class="at" data-s="1">звезд.</span></span></p>
+      <p class="sr-only">Световая реклама мюзик-холля взбегала по ступеням вертикально расположенных букв, они погасали разом, и снова свет карабкался вверх: какое вавилонское слово достигло бы до небес… сборное название триллиона тонов: бриллиантоволуннолилитовосизолазоревогрозносапфиристосинелилово, и так далее — сколько еще!</p>
+    </div>
+    <p class="sign">— «Дар» <span class="sign-d">роман</span></p>
+  </section>
+
+  <section class="floor two ls-floor">
+    <div class="text">
+      <h2 class="sub-h">Самое длинное предложение</h2>
+      <div class="rec-text ls-text" data-line="0.3"><p><span class="cx" style="opacity:0.043">с</span> <span class="cx" style="opacity:0.047">ним</span> <span class="cx" style="opacity:0.050">сидел</span> <span class="cx" style="opacity:0.053">и</span> <span class="cx" style="opacity:0.057">пил</span> <span class="cx" style="opacity:0.060">чай</span> <span class="cx" style="opacity:0.063">с</span> <span class="cx" style="opacity:0.067">лимоном,</span> <span class="cx" style="opacity:0.070">сам</span> <span class="cx" style="opacity:0.073">очень</span> <span class="cx" style="opacity:0.077">лимонный,</span> <span class="cx" style="opacity:0.080">с</span> <span class="cx" style="opacity:0.083">печально</span> <span class="cx" style="opacity:0.087">приподнятыми</span> <span class="cx" style="opacity:0.090">бровями,</span> <span class="cx" style="opacity:0.093">сатирик</span> <span class="cx" style="opacity:0.097">из</span> <span class="cx" style="opacity:0.100">«Газеты»,</span> <span class="cx" style="opacity:0.103">псевдоним</span> <span class="cx" style="opacity:0.107">которого,</span> <span class="cx" style="opacity:0.110">Фома</span> <span class="cx" style="opacity:0.113">Мур,</span> <span class="cx" style="opacity:0.117">содержал,</span> <span class="cx" style="opacity:0.120">по</span> <span class="cx" style="opacity:0.123">собственному</span> <span class="cx" style="opacity:0.127">его</span> <span class="cx" style="opacity:0.130">заверению,</span> <span class="cx" style="opacity:0.133">«целый</span> <span class="cx" style="opacity:0.137">французский</span> <span class="cx" style="opacity:0.140">роман,</span> <span class="cx" style="opacity:0.143">страничку</span> <span class="cx" style="opacity:0.147">английской</span> <span class="cx" style="opacity:0.150">литературы</span> <span class="cx" style="opacity:0.153">и</span> <span class="cx" style="opacity:0.157">немножко</span> <span class="cx" style="opacity:0.160">еврейского</span> <span class="cx" style="opacity:0.163">скептицизма».</span> <span class="cx" style="opacity:0.167">Ширин</span> <span class="cx" style="opacity:0.170">чинил</span> <span class="cx" style="opacity:0.173">карандаш</span> <span class="cx" style="opacity:0.177">над</span> <span class="cx" style="opacity:0.180">пепельницей,</span> <span class="cx" style="opacity:0.183">—</span> <span class="cx" style="opacity:0.187">весьма</span> <span class="cx" style="opacity:0.190">обиженный</span> <span class="cx" style="opacity:0.193">на</span> <span class="cx" style="opacity:0.197">Федора</span> <span class="cx" style="opacity:0.200">Константиновича</span> <span class="cx" style="opacity:0.203">за</span> <span class="cx" style="opacity:0.207">отказ</span> <span class="cx" style="opacity:0.210">«фигурировать»</span> <span class="cx" style="opacity:0.213">в</span> <span class="cx" style="opacity:0.217">избирательном</span> <span class="cx" style="opacity:0.220">списке.</span> <span class="w" data-n="1">Из</span> <span class="w" data-n="2">литераторов</span> <span class="w" data-n="3">тут</span> <span class="w" data-n="4">был</span> <span class="w" data-n="5">еще</span> <span class="w" data-n="6">Ростислав</span> <span class="w" data-n="7">Странный</span> <span class="w" data-n="7"><span class="pm" data-k="dash">—</span></span> <span class="w" data-n="8">страшноватый</span> <span class="w" data-n="9">господин</span> <span class="w" data-n="10">с</span> <span class="w" data-n="11">браслеткой</span> <span class="w" data-n="12">на</span> <span class="w" data-n="13">волосатой</span> <span class="w" data-n="14">кисти<span class="pm" data-k="comma">,</span></span> <span class="w" data-n="14"><span class="pm" data-k="dash">—</span></span> <span class="w" data-n="15">и</span> <span class="w" data-n="16">пергаментная<span class="pm" data-k="comma">,</span></span> <span class="w" data-n="17">с</span> <span class="w" data-n="18">вороными</span> <span class="w" data-n="19">волосами<span class="pm" data-k="comma">,</span></span> <span class="w" data-n="20">поэтесса</span> <span class="w" data-n="21">Анна</span> <span class="w" data-n="22">Аптекарь<span class="pm" data-k="comma">,</span></span> <span class="w" data-n="23">и</span> <span class="w" data-n="24">театральный</span> <span class="w" data-n="25">критик<span class="pm" data-k="comma">,</span></span> <span class="w" data-n="25"><span class="pm" data-k="dash">—</span></span> <span class="w" data-n="26">тощий<span class="pm" data-k="comma">,</span></span> <span class="w" data-n="27">своеобразно</span> <span class="w" data-n="28">тихий</span> <span class="w" data-n="29">молодой</span> <span class="w" data-n="30">человек<span class="pm" data-k="comma">,</span></span> <span class="w" data-n="31">с</span> <span class="w" data-n="32">каким-то</span> <span class="w" data-n="33">неуловимо</span> <span class="w" data-n="34">дагерротипным</span> <span class="w" data-n="35">оттенком</span> <span class="w" data-n="36">русских</span> <span class="w" data-n="37">сороковых</span> <span class="w" data-n="38">годов</span> <span class="w" data-n="39">во</span> <span class="w" data-n="40">всем</span> <span class="w" data-n="41">облике<span class="pm" data-k="comma">,</span></span> <span class="w" data-n="41"><span class="pm" data-k="dash">—</span></span> <span class="w" data-n="42">и<span class="pm" data-k="comma">,</span></span> <span class="w" data-n="43">конечно<span class="pm" data-k="comma">,</span></span> <span class="w" data-n="44">добрейший</span> <span class="w" data-n="45">Буш<span class="pm" data-k="comma">,</span></span> <span class="w" data-n="46">отечески</span> <span class="w" data-n="47">поглядывавший</span> <span class="w" data-n="48">на</span> <span class="w" data-n="49">Федора</span> <span class="w" data-n="50">Константиновича<span class="pm" data-k="comma">,</span></span> <span class="w" data-n="51">который<span class="pm" data-k="comma">,</span></span> <span class="w" data-n="52">вполуха</span> <span class="w" data-n="53">слушая</span> <span class="w" data-n="54">отчет</span> <span class="w" data-n="55">председателя</span> <span class="w" data-n="56">Союза<span class="pm" data-k="comma">,</span></span> <span class="w" data-n="57">теперь</span> <span class="w" data-n="58">перешел</span> <span class="w" data-n="59">взглядом</span> <span class="w" data-n="60">от</span> <span class="w" data-n="61">Буша<span class="pm" data-k="comma">,</span></span> <span class="w" data-n="62">Лишневского<span class="pm" data-k="comma">,</span></span> <span class="w" data-n="63">Ширина</span> <span class="w" data-n="64">и</span> <span class="w" data-n="65">других</span> <span class="w" data-n="66">сочинителей</span> <span class="w" data-n="67">к</span> <span class="w" data-n="68">общей</span> <span class="w" data-n="69">гуще</span> <span class="w" data-n="70">присутствующих<span class="pm" data-k="comma">,</span></span> <span class="w" data-n="71">среди</span> <span class="w" data-n="72">которых</span> <span class="w" data-n="73">было</span> <span class="w" data-n="74">несколько</span> <span class="w" data-n="75">журналистов<span class="pm" data-k="comma">,</span></span> <span class="w" data-n="76">вроде</span> <span class="w" data-n="77">старичка</span> <span class="w" data-n="78">Ступишина<span class="pm" data-k="comma">,</span></span> <span class="w" data-n="79">въедавшегося</span> <span class="w" data-n="80">ложечкой</span> <span class="w" data-n="81">в</span> <span class="w" data-n="82">клин</span> <span class="w" data-n="83">кофейного</span> <span class="w" data-n="84">торта<span class="pm" data-k="comma">,</span></span> <span class="w" data-n="85">и</span> <span class="w" data-n="86">много</span> <span class="w" data-n="87">репортеров<span class="pm" data-k="comma">,</span></span> <span class="w" data-n="88">и</span> <span class="w" data-n="89">одиноко</span> <span class="w" data-n="90">сидевшая<span class="pm" data-k="comma">,</span></span> <span class="w" data-n="91">неизвестно</span> <span class="w" data-n="92">по</span> <span class="w" data-n="93">какому</span> <span class="w" data-n="94">признаку</span> <span class="w" data-n="95">здесь</span> <span class="w" data-n="96">находившаяся</span> <span class="w" data-n="97">Любовь</span> <span class="w" data-n="98">Марковна</span> <span class="w" data-n="99">в</span> <span class="w" data-n="100">пугливо</span> <span class="w" data-n="101">блестевшем</span> <span class="w" data-n="102">пенсне<span class="pm" data-k="comma">,</span></span> <span class="w" data-n="103">и</span> <span class="w" data-n="104">вообще</span> <span class="w" data-n="105">большое</span> <span class="w" data-n="106">количество</span> <span class="w" data-n="107">тех<span class="pm" data-k="comma">,</span></span> <span class="w" data-n="108">которых</span> <span class="w" data-n="109">Ширин</span> <span class="w" data-n="110">пристрастно</span> <span class="w" data-n="111">называл</span> <span class="w" data-n="112">«пришлым</span> <span class="w" data-n="113">элементом»<span class="pm" data-k="colon">:</span></span> <span class="w" data-n="114">представительный</span> <span class="w" data-n="115">адвокат</span> <span class="w" data-n="116">Чарский<span class="pm" data-k="comma">,</span></span> <span class="w" data-n="117">державший</span> <span class="w" data-n="118">в</span> <span class="w" data-n="119">белой<span class="pm" data-k="comma">,</span></span> <span class="w" data-n="120">всегда</span> <span class="w" data-n="121">дрожащей</span> <span class="w" data-n="122">руке</span> <span class="w" data-n="123">четвертую</span> <span class="w" data-n="124">за</span> <span class="w" data-n="125">это</span> <span class="w" data-n="126">время</span> <span class="w" data-n="127">папиросу<span class="pm" data-k="semicolon">;</span></span> <span class="w" data-n="128">какой-то</span> <span class="w" data-n="129">маленький</span> <span class="w" data-n="130">бородатый</span> <span class="w" data-n="131">мытарь<span class="pm" data-k="comma">,</span></span> <span class="w" data-n="132">когда-то</span> <span class="w" data-n="133">напечатавший</span> <span class="w" data-n="134">некролог</span> <span class="w" data-n="135">в</span> <span class="w" data-n="136">бундистском</span> <span class="w" data-n="137">журнальчике<span class="pm" data-k="semicolon">;</span></span> <span class="w" data-n="138">нежный<span class="pm" data-k="comma">,</span></span> <span class="w" data-n="139">бледный</span> <span class="w" data-n="140">старик<span class="pm" data-k="comma">,</span></span> <span class="w" data-n="141">на</span> <span class="w" data-n="142">вкус</span> <span class="w" data-n="143">напоминавший</span> <span class="w" data-n="144">яблочную</span> <span class="w" data-n="145">пастилу<span class="pm" data-k="comma">,</span></span> <span class="w" data-n="146">с</span> <span class="w" data-n="147">увлечением</span> <span class="w" data-n="148">отправлявший</span> <span class="w" data-n="149">должность</span> <span class="w" data-n="150">регента</span> <span class="w" data-n="151">церковного</span> <span class="w" data-n="152">хора<span class="pm" data-k="semicolon">;</span></span> <span class="w" data-n="153">громадный<span class="pm" data-k="comma">,</span></span> <span class="w" data-n="154">загадочный</span> <span class="w" data-n="155">толстяк<span class="pm" data-k="comma">,</span></span> <span class="w" data-n="156">живший</span> <span class="w" data-n="157">отшельником</span> <span class="w" data-n="158">в</span> <span class="w" data-n="159">сосновом</span> <span class="w" data-n="160">лесу</span> <span class="w" data-n="161">под</span> <span class="w" data-n="162">Берлином<span class="pm" data-k="comma">,</span></span> <span class="w" data-n="163">чуть</span> <span class="w" data-n="164">ли</span> <span class="w" data-n="165">не</span> <span class="w" data-n="166">в</span> <span class="w" data-n="167">пещере<span class="pm" data-k="comma">,</span></span> <span class="w" data-n="168">и</span> <span class="w" data-n="169">там</span> <span class="w" data-n="170">составивший</span> <span class="w" data-n="171">сборник</span> <span class="w" data-n="172">советских</span> <span class="w" data-n="173">анекдотов<span class="pm" data-k="semicolon">;</span></span> <span class="w" data-n="174">отдельная</span> <span class="w" data-n="175">группа</span> <span class="w" data-n="176">скандалистов<span class="pm" data-k="comma">,</span></span> <span class="w" data-n="177">самолюбивых</span> <span class="w" data-n="178">неудачников<span class="pm" data-k="semicolon">;</span></span> <span class="w" data-n="179">приятный</span> <span class="w" data-n="180">молодой</span> <span class="w" data-n="181">человек</span> <span class="w" data-n="182">неизвестного</span> <span class="w" data-n="183">состояния</span> <span class="w" data-n="184">и</span> <span class="w" data-n="185">назначения</span> <span class="w" data-n="186"><span class="pm" data-k="bracket">(</span>«чекист»<span class="pm" data-k="comma">,</span></span> <span class="w" data-n="187">просто</span> <span class="w" data-n="188">и</span> <span class="w" data-n="189">мрачно</span> <span class="w" data-n="190">говорил</span> <span class="w" data-n="191">Ширин<span class="pm" data-k="bracket">)</span><span class="pm" data-k="semicolon">;</span></span> <span class="w" data-n="192">еще</span> <span class="w" data-n="193">одна</span> <span class="w" data-n="194">дама<span class="pm" data-k="comma">,</span></span> <span class="w" data-n="194"><span class="pm" data-k="dash">—</span></span> <span class="w" data-n="195">чья-то</span> <span class="w" data-n="196">бывшая</span> <span class="w" data-n="197">секретарша<span class="pm" data-k="semicolon">;</span></span> <span class="w" data-n="198">ее</span> <span class="w" data-n="199">муж</span> <span class="w" data-n="199"><span class="pm" data-k="dash">—</span></span> <span class="w" data-n="200">брат</span> <span class="w" data-n="201">известного</span> <span class="w" data-n="202">издателя<span class="pm" data-k="semicolon">;</span></span> <span class="w" data-n="203">и</span> <span class="w" data-n="204">все</span> <span class="w" data-n="205">эти</span> <span class="w" data-n="206">люди<span class="pm" data-k="comma">,</span></span> <span class="w" data-n="207">начиная</span> <span class="w" data-n="208">от</span> <span class="w" data-n="209">безграмотного</span> <span class="w" data-n="210">оборванца<span class="pm" data-k="comma">,</span></span> <span class="w" data-n="211">с</span> <span class="w" data-n="212">тяжелым<span class="pm" data-k="comma">,</span></span> <span class="w" data-n="213">пьяным</span> <span class="w" data-n="214">взглядом<span class="pm" data-k="comma">,</span></span> <span class="w" data-n="215">пишущего</span> <span class="w" data-n="216">обличительно-мистические</span> <span class="w" data-n="217">стихи<span class="pm" data-k="comma">,</span></span> <span class="w" data-n="218">которые</span> <span class="w" data-n="219">еще</span> <span class="w" data-n="220">ни</span> <span class="w" data-n="221">одна</span> <span class="w" data-n="222">газета</span> <span class="w" data-n="223">не</span> <span class="w" data-n="224">согласилась</span> <span class="w" data-n="225">напечатать<span class="pm" data-k="comma">,</span></span> <span class="w" data-n="226">и</span> <span class="w" data-n="227">кончая</span> <span class="w" data-n="228">отвратительно</span> <span class="w" data-n="229">маленьким<span class="pm" data-k="comma">,</span></span> <span class="w" data-n="230">почти</span> <span class="w" data-n="231">портативным</span> <span class="w" data-n="232">присяжным</span> <span class="w" data-n="233">поверенным</span> <span class="w" data-n="234">Пышкиным<span class="pm" data-k="comma">,</span></span> <span class="w" data-n="235">который</span> <span class="w" data-n="236">произносил</span> <span class="w" data-n="237">в</span> <span class="w" data-n="238">разговоре</span> <span class="w" data-n="239">с</span> <span class="w" data-n="240">вами<span class="pm" data-k="colon">:</span></span> <span class="w" data-n="241">«Я</span> <span class="w" data-n="242">не</span> <span class="w" data-n="243">дымаю»</span> <span class="w" data-n="244">и</span> <span class="w" data-n="245">«Сымасшествие»<span class="pm" data-k="comma">,</span></span> <span class="w" data-n="245"><span class="pm" data-k="dash">—</span></span> <span class="w" data-n="246">словно</span> <span class="w" data-n="247">устраивая</span> <span class="w" data-n="248">своей</span> <span class="w" data-n="249">фамилии</span> <span class="w" data-n="250">некое</span> <span class="w" data-n="251">алиби<span class="pm" data-k="comma">,</span></span> <span class="w" data-n="251"><span class="pm" data-k="dash">—</span></span> <span class="w" data-n="252">все</span> <span class="w" data-n="253">они<span class="pm" data-k="comma">,</span></span> <span class="w" data-n="254">по</span> <span class="w" data-n="255">мнению</span> <span class="w" data-n="256">Ширина<span class="pm" data-k="comma">,</span></span> <span class="w" data-n="257">роняли</span> <span class="w" data-n="258">достоинство</span> <span class="w" data-n="259">Союза</span> <span class="w" data-n="260">и</span> <span class="w" data-n="261">подлежали</span> <span class="w" data-n="262">немедленному</span> <span class="w" data-n="263">изгнанию.</span></p><p><span class="cx" style="opacity:0.220">«Засим,</span> <span class="cx" style="opacity:0.217">—</span> <span class="cx" style="opacity:0.214">сказал</span> <span class="cx" style="opacity:0.210">Васильев,</span> <span class="cx" style="opacity:0.207">кончив</span> <span class="cx" style="opacity:0.204">свой</span> <span class="cx" style="opacity:0.201">отчет,</span> <span class="cx" style="opacity:0.198">—</span> <span class="cx" style="opacity:0.194">довожу</span> <span class="cx" style="opacity:0.191">до</span> <span class="cx" style="opacity:0.188">сведения</span> <span class="cx" style="opacity:0.185">собрания,</span> <span class="cx" style="opacity:0.181">что</span> <span class="cx" style="opacity:0.178">слагаю</span> <span class="cx" style="opacity:0.175">с</span> <span class="cx" style="opacity:0.172">себя</span> <span class="cx" style="opacity:0.169">обязанности</span> <span class="cx" style="opacity:0.165">председателя</span> <span class="cx" style="opacity:0.162">Союза</span> <span class="cx" style="opacity:0.159">и</span> <span class="cx" style="opacity:0.156">баллотироваться</span> <span class="cx" style="opacity:0.152">в</span> <span class="cx" style="opacity:0.149">новое</span> <span class="cx" style="opacity:0.146">правление</span> <span class="cx" style="opacity:0.143">не</span> <span class="cx" style="opacity:0.140">буду».</span></p><p><span class="cx" style="opacity:0.136">Он</span> <span class="cx" style="opacity:0.133">сел.</span> <span class="cx" style="opacity:0.130">Потянуло</span> <span class="cx" style="opacity:0.127">холодком.</span> <span class="cx" style="opacity:0.124">Гурман</span> <span class="cx" style="opacity:0.120">в</span> <span class="cx" style="opacity:0.117">изнеможении</span> <span class="cx" style="opacity:0.114">печали</span> <span class="cx" style="opacity:0.111">смежил</span> <span class="cx" style="opacity:0.108">тяжелые</span> <span class="cx" style="opacity:0.104">веки.</span> <span class="cx" style="opacity:0.101">Электрический</span> <span class="cx" style="opacity:0.098">поезд</span> <span class="cx" style="opacity:0.095">проскользил</span> <span class="cx" style="opacity:0.091">смычком</span> <span class="cx" style="opacity:0.088">по</span> <span class="cx" style="opacity:0.085">басистой</span> <span class="cx" style="opacity:0.082">струне.</span></p><p><span class="cx" style="opacity:0.079">«Далее</span> <span class="cx" style="opacity:0.075">следует…</span> <span class="cx" style="opacity:0.072">—</span> <span class="cx" style="opacity:0.069">сказал</span> <span class="cx" style="opacity:0.066">профессор</span> <span class="cx" style="opacity:0.062">Краевич,</span> <span class="cx" style="opacity:0.059">подняв</span> <span class="cx" style="opacity:0.056">к</span> <span class="cx" style="opacity:0.053">глазам</span> <span class="cx" style="opacity:0.050">пенсне</span> <span class="cx" style="opacity:0.046">и</span> <span class="cx" style="opacity:0.043">смотря</span></p></div>
+    </div>
+    <div class="data">
+      <div class="data-in reveal">
+        <div class="figure"><span class="num" data-value="263">263</span></div>
+        <div class="unit">слова</div>
+        <div class="pair2"><span class="fig2"><span class="num" data-value="2058">2058</span></span><span class="unit">символов</span></div>
+        <div class="progress"><i></i></div>
+        <div class="counter"><b>0</b> / 263</div>
+        <table class="punct"><tr data-k="comma"><td class="g">,</td><th scope="row">запятые</th><td class="n"><span class="num" data-value="49">49</span></td></tr><tr data-k="dash"><td class="g">—</td><th scope="row">тире</th><td class="n"><span class="num" data-value="8">8</span></td></tr><tr data-k="semicolon"><td class="g">;</td><th scope="row">точки с запятой</th><td class="n"><span class="num" data-value="8">8</span></td></tr><tr data-k="colon"><td class="g">:</td><th scope="row">двоеточия</th><td class="n"><span class="num" data-value="2">2</span></td></tr><tr data-k="bracket"><td class="g">( )</td><th scope="row">скобки</th><td class="n"><span class="num" data-value="2">2</span></td></tr><tr class="total"><td class="g"></td><th scope="row">всего</th><td class="n"><span class="num" data-value="69">69</span></td></tr></table>
+      </div>
+    </div>
+    <p class="sign">— «Дар» <span class="sign-d">роман</span></p>
+  </section>
+
+  <section class="floor two avg-floor">
+    <div class="text">
+      <h2 class="sub-h">Средняя длина предложения</h2>
+    </div>
+    <div class="data">
+      <div class="data-in reveal">
+        <div class="figure"><span class="num" data-value="156.349" data-decimals="3">156,349</span></div>
+        <div class="unit">символа</div>
+        <div class="figure"><span class="num" data-value="22.764" data-decimals="3">22,764</span></div>
+        <div class="unit">слова</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="floor dist-floor">
+    <h2 class="sub-h">Распределение длин</h2>
+    <div class="reveal"><figure class="hist"><figcaption class="cap">Длина слова, букв</figcaption><div class="hstats"><span class="hs"><span class="hs-l">среднее</span> <span class="num" data-value="5.58" data-decimals="3">5,580</span></span><span class="hs"><span class="hs-l">медиана</span> <span class="num" data-value="5">5</span></span><span class="hs"><span class="hs-l">мода</span> <span class="num" data-value="5">5</span></span><span class="hs"><span class="hs-l">максимум</span> <span class="num" data-value="63">63</span></span></div><div class="plot" data-link=wl><div class="grid"><span class="gl" style="--y:0.00000"><b>0</b></span><span class="gl" style="--y:0.50000"><b>10 000</b></span><span class="gl" style="--y:1.00000"><b>20 000</b></span></div><div class="cols"><i class=nz style="--h:0.55550" data-x="1" data-t="1 буква — 11 110 слов" data-e="чаще всего «и»"></i><i class=nz style="--h:0.50860" data-x="2" data-t="2 буквы — 10 172 слова" data-e="чаще всего «на»"></i><i class=nz style="--h:0.57370" data-x="3" data-t="3 буквы — 11 474 слова" data-e="чаще всего «что»"></i><i class=nz style="--h:0.44075" data-x="4" data-t="4 буквы — 8815 слов" data-e="чаще всего «было»"></i><i class=nz style="--h:0.60815" data-x="5" data-t="5 букв — 12 163 слова" data-e="чаще всего «когда»"></i><i class=nz style="--h:0.59030" data-x="6" data-t="6 букв — 11 806 слов" data-e="чаще всего «только»"></i><i class=nz style="--h:0.52895" data-x="7" data-t="7 букв — 10 579 слов" data-e="чаще всего «который»"></i><i class=nz style="--h:0.39945" data-x="8" data-t="8 букв — 7989 слов" data-e="чаще всего «которого»"></i><i class=nz style="--h:0.31450" data-x="9" data-t="9 букв — 6290 слов" data-e="чаще всего «несколько»"></i><i class=nz style="--h:0.23610" data-x="10" data-t="10 букв — 4722 слова" data-e="чаще всего «совершенно»"></i><i class=nz style="--h:0.15475" data-x="11" data-t="11 букв — 3095 слов" data-e="чаще всего «представить»"></i><i class=nz style="--h:0.10900" data-x="12" data-t="12 букв — 2180 слов" data-e="чаще всего «Чернышевский»"></i><i class=nz style="--h:0.06330" data-x="13" data-t="13 букв — 1266 слов" data-e="чаще всего «Чернышевского»"></i><i class=nz style="--h:0.04095" data-x="14" data-t="14 букв — 819 слов" data-e="чаще всего «Константинович»"></i><i class=nz style="--h:0.02055" data-x="15" data-t="15 букв — 411 слов" data-e="чаще всего «Константиновича»"></i><i class=nz style="--h:0.01035" data-x="16" data-t="16 букв — 207 слов" data-e="чаще всего «Годунов-Чердынцев»"></i><i class=nz style="--h:0.00390" data-x="17" data-t="17 букв — 78 слов" data-e="чаще всего «неосведомленность»"></i><i class=nz style="--h:0.00325" data-x="18" data-t="18 букв — 65 слов" data-e="чаще всего «Годунова-Чердынцева»"></i><i class=nz style="--h:0.00150" data-x="19" data-t="19 букв — 30 слов" data-e="чаще всего «доброкачественность»"></i><i class=nz style="--h:0.00100" data-x="20" data-t="20 букв — 20 слов" data-e="чаще всего «Годуновых-Чердынцевых»"></i><i class=nz style="--h:0.00040" data-x="21" data-t="21 буква — 8 слов" data-e="чаще всего «новонатуралистической»"></i><i class=nz style="--h:0.00050" data-x="22" data-t="22 буквы — 10 слов" data-e="чаще всего «жорж-сандово-царственное»"></i><i class=nz style="--h:0.00025" data-x="23" data-t="23 буквы — 5 слов" data-e="чаще всего «ямщикнегонилошадейности»"></i><i class=nz style="--h:0.00020" data-x="24" data-t="24 буквы — 4 слова" data-e="чаще всего «сентиментально-умственные»"></i><i class=nz style="--h:0.00010" data-x="25" data-t="25 букв — 2 слова" data-e="чаще всего «безобразно-продолжительных»"></i><i class=nz style="--h:0.00005" data-x="26" data-t="26 букв — 1 слово" data-e="чаще всего «откровенно-беззащитно-изящно»"></i><i class=nz style="--h:0.00015" data-x="27" data-t="27 букв — 3 слова" data-e="чаще всего «восторженно-благодарственным»"></i><i class=nz style="--h:0.00005" data-x="28" data-t="28 букв — 1 слово" data-e="чаще всего «великого-писателя-земли-русской»"></i><i style="--h:0.00000" data-x="29" data-t="29 букв — 0 слов"></i><i class=nz style="--h:0.00005" data-x="30" data-t="30 букв — 1 слово" data-e="чаще всего «эгоизм-альтруизм-эгоизм-альтруизм»"></i><i class=nz style="--h:0.00005" data-x="31" data-t="31 буква — 1 слово" data-e="чаще всего «апокалиптически-апоплексическими»"></i><i style="--h:0.00000" data-x="32" data-t="32 буквы — 0 слов"></i><i style="--h:0.00000" data-x="33" data-t="33 буквы — 0 слов"></i><i style="--h:0.00000" data-x="34" data-t="34 буквы — 0 слов"></i><i style="--h:0.00000" data-x="35" data-t="35 букв — 0 слов"></i><i style="--h:0.00000" data-x="36" data-t="36 букв — 0 слов"></i><i style="--h:0.00000" data-x="37" data-t="37 букв — 0 слов"></i><i style="--h:0.00000" data-x="38" data-t="38 букв — 0 слов"></i><i style="--h:0.00000" data-x="39" data-t="39 букв — 0 слов"></i><i style="--h:0.00000" data-x="40" data-t="40 букв — 0 слов"></i><i style="--h:0.00000" data-x="41" data-t="41 буква — 0 слов"></i><i style="--h:0.00000" data-x="42" data-t="42 буквы — 0 слов"></i><i style="--h:0.00000" data-x="43" data-t="43 буквы — 0 слов"></i><i style="--h:0.00000" data-x="44" data-t="44 буквы — 0 слов"></i><i style="--h:0.00000" data-x="45" data-t="45 букв — 0 слов"></i><i style="--h:0.00000" data-x="46" data-t="46 букв — 0 слов"></i><i style="--h:0.00000" data-x="47" data-t="47 букв — 0 слов"></i><i style="--h:0.00000" data-x="48" data-t="48 букв — 0 слов"></i><i style="--h:0.00000" data-x="49" data-t="49 букв — 0 слов"></i><i style="--h:0.00000" data-x="50" data-t="50 букв — 0 слов"></i><i style="--h:0.00000" data-x="51" data-t="51 буква — 0 слов"></i><i style="--h:0.00000" data-x="52" data-t="52 буквы — 0 слов"></i><i style="--h:0.00000" data-x="53" data-t="53 буквы — 0 слов"></i><i style="--h:0.00000" data-x="54" data-t="54 буквы — 0 слов"></i><i style="--h:0.00000" data-x="55" data-t="55 букв — 0 слов"></i><i style="--h:0.00000" data-x="56" data-t="56 букв — 0 слов"></i><i style="--h:0.00000" data-x="57" data-t="57 букв — 0 слов"></i><i style="--h:0.00000" data-x="58" data-t="58 букв — 0 слов"></i><i style="--h:0.00000" data-x="59" data-t="59 букв — 0 слов"></i><i style="--h:0.00000" data-x="60" data-t="60 букв — 0 слов"></i><i style="--h:0.00000" data-x="61" data-t="61 буква — 0 слов"></i><i style="--h:0.00000" data-x="62" data-t="62 буквы — 0 слов"></i><i class=nz style="--h:0.00005" data-x="63" data-t="63 буквы — 1 слово" data-e="чаще всего «бриллиантоволуннолилитовосизолазоревогрозносапфиристосинелилово»"></i></div><div class="tip" hidden></div></div><div class="xax"><span style="--x:0.00794">1</span><span style="--x:0.07143">5</span><span style="--x:0.15079">10</span><span style="--x:0.23016">15</span><span style="--x:0.30952">20</span><span style="--x:0.38889">25</span><span style="--x:0.46825">30</span><span style="--x:0.54762">35</span><span style="--x:0.62698">40</span><span style="--x:0.70635">45</span><span style="--x:0.78571">50</span><span style="--x:0.86508">55</span><span style="--x:0.99206">63</span></div><div class="sr-only"><table><caption>Длина слова, букв</caption><tr><th>длина — слов</th></tr><tr><td>1 буква — 11 110 слов; чаще всего «и»</td></tr><tr><td>2 буквы — 10 172 слова; чаще всего «на»</td></tr><tr><td>3 буквы — 11 474 слова; чаще всего «что»</td></tr><tr><td>4 буквы — 8815 слов; чаще всего «было»</td></tr><tr><td>5 букв — 12 163 слова; чаще всего «когда»</td></tr><tr><td>6 букв — 11 806 слов; чаще всего «только»</td></tr><tr><td>7 букв — 10 579 слов; чаще всего «который»</td></tr><tr><td>8 букв — 7989 слов; чаще всего «которого»</td></tr><tr><td>9 букв — 6290 слов; чаще всего «несколько»</td></tr><tr><td>10 букв — 4722 слова; чаще всего «совершенно»</td></tr><tr><td>11 букв — 3095 слов; чаще всего «представить»</td></tr><tr><td>12 букв — 2180 слов; чаще всего «Чернышевский»</td></tr><tr><td>13 букв — 1266 слов; чаще всего «Чернышевского»</td></tr><tr><td>14 букв — 819 слов; чаще всего «Константинович»</td></tr><tr><td>15 букв — 411 слов; чаще всего «Константиновича»</td></tr><tr><td>16 букв — 207 слов; чаще всего «Годунов-Чердынцев»</td></tr><tr><td>17 букв — 78 слов; чаще всего «неосведомленность»</td></tr><tr><td>18 букв — 65 слов; чаще всего «Годунова-Чердынцева»</td></tr><tr><td>19 букв — 30 слов; чаще всего «доброкачественность»</td></tr><tr><td>20 букв — 20 слов; чаще всего «Годуновых-Чердынцевых»</td></tr><tr><td>21 буква — 8 слов; чаще всего «новонатуралистической»</td></tr><tr><td>22 буквы — 10 слов; чаще всего «жорж-сандово-царственное»</td></tr><tr><td>23 буквы — 5 слов; чаще всего «ямщикнегонилошадейности»</td></tr><tr><td>24 буквы — 4 слова; чаще всего «сентиментально-умственные»</td></tr><tr><td>25 букв — 2 слова; чаще всего «безобразно-продолжительных»</td></tr><tr><td>26 букв — 1 слово; чаще всего «откровенно-беззащитно-изящно»</td></tr><tr><td>27 букв — 3 слова; чаще всего «восторженно-благодарственным»</td></tr><tr><td>28 букв — 1 слово; чаще всего «великого-писателя-земли-русской»</td></tr><tr><td>29 букв — 0 слов</td></tr><tr><td>30 букв — 1 слово; чаще всего «эгоизм-альтруизм-эгоизм-альтруизм»</td></tr><tr><td>31 буква — 1 слово; чаще всего «апокалиптически-апоплексическими»</td></tr><tr><td>32 буквы — 0 слов</td></tr><tr><td>33 буквы — 0 слов</td></tr><tr><td>34 буквы — 0 слов</td></tr><tr><td>35 букв — 0 слов</td></tr><tr><td>36 букв — 0 слов</td></tr><tr><td>37 букв — 0 слов</td></tr><tr><td>38 букв — 0 слов</td></tr><tr><td>39 букв — 0 слов</td></tr><tr><td>40 букв — 0 слов</td></tr><tr><td>41 буква — 0 слов</td></tr><tr><td>42 буквы — 0 слов</td></tr><tr><td>43 буквы — 0 слов</td></tr><tr><td>44 буквы — 0 слов</td></tr><tr><td>45 букв — 0 слов</td></tr><tr><td>46 букв — 0 слов</td></tr><tr><td>47 букв — 0 слов</td></tr><tr><td>48 букв — 0 слов</td></tr><tr><td>49 букв — 0 слов</td></tr><tr><td>50 букв — 0 слов</td></tr><tr><td>51 буква — 0 слов</td></tr><tr><td>52 буквы — 0 слов</td></tr><tr><td>53 буквы — 0 слов</td></tr><tr><td>54 буквы — 0 слов</td></tr><tr><td>55 букв — 0 слов</td></tr><tr><td>56 букв — 0 слов</td></tr><tr><td>57 букв — 0 слов</td></tr><tr><td>58 букв — 0 слов</td></tr><tr><td>59 букв — 0 слов</td></tr><tr><td>60 букв — 0 слов</td></tr><tr><td>61 буква — 0 слов</td></tr><tr><td>62 буквы — 0 слов</td></tr><tr><td>63 буквы — 1 слово; чаще всего «бриллиантоволуннолилитовосизолазоревогрозносапфиристосинелилово»</td></tr></table></div></figure><div class="ex-wrap"><table class="examples" data-link="wl"><caption class="cap">Самое частое слово каждой длины</caption><tr class="ex-h"><th class="ex-n">букв</th><th class="ex-c">раз</th><th class="ex-w">слово</th></tr><tr data-x="1"><td class="ex-n">1</td><td class="ex-c"><span class="num" data-value="3428">3428</span></td><td class="ex-w">и</td></tr><tr data-x="2"><td class="ex-n">2</td><td class="ex-c"><span class="num" data-value="1609">1609</span></td><td class="ex-w">на</td></tr><tr data-x="3"><td class="ex-n">3</td><td class="ex-c"><span class="num" data-value="1354">1354</span></td><td class="ex-w">что</td></tr><tr data-x="4"><td class="ex-n">4</td><td class="ex-c"><span class="num" data-value="419">419</span></td><td class="ex-w">было</td></tr><tr data-x="5"><td class="ex-n">5</td><td class="ex-c"><span class="num" data-value="311">311</span></td><td class="ex-w">когда</td></tr><tr data-x="6"><td class="ex-n">6</td><td class="ex-c"><span class="num" data-value="259">259</span></td><td class="ex-w">только</td></tr><tr data-x="7"><td class="ex-n">7</td><td class="ex-c"><span class="num" data-value="130">130</span></td><td class="ex-w">который</td></tr><tr data-x="8"><td class="ex-n">8</td><td class="ex-c"><span class="num" data-value="86">86</span></td><td class="ex-w">которого</td></tr><tr data-x="9"><td class="ex-n">9</td><td class="ex-c"><span class="num" data-value="70">70</span></td><td class="ex-w">несколько</td></tr><tr data-x="10"><td class="ex-n">10</td><td class="ex-c"><span class="num" data-value="80">80</span></td><td class="ex-w">совершенно</td></tr><tr data-x="11"><td class="ex-n">11</td><td class="ex-c"><span class="num" data-value="22">22</span></td><td class="ex-w">представить</td></tr><tr data-x="12"><td class="ex-n">12</td><td class="ex-c"><span class="num" data-value="122">122</span></td><td class="ex-w">Чернышевский</td></tr><tr data-x="13"><td class="ex-n">13</td><td class="ex-c"><span class="num" data-value="106">106</span></td><td class="ex-w">Чернышевского</td></tr><tr data-x="14"><td class="ex-n">14</td><td class="ex-c"><span class="num" data-value="197">197</span></td><td class="ex-w">Константинович</td></tr><tr data-x="15"><td class="ex-n">15</td><td class="ex-c"><span class="num" data-value="45">45</span></td><td class="ex-w">Константиновича</td></tr><tr data-x="16"><td class="ex-n">16</td><td class="ex-c"><span class="num" data-value="17">17</span></td><td class="ex-w">Годунов-Чердынцев</td></tr><tr data-x="17"><td class="ex-n">17</td><td class="ex-c"><span class="num" data-value="2">2</span></td><td class="ex-w">неосведомленность</td></tr><tr data-x="18"><td class="ex-n">18</td><td class="ex-c"><span class="num" data-value="9">9</span></td><td class="ex-w">Годунова-Чердынцева</td></tr><tr data-x="19"><td class="ex-n">19</td><td class="ex-c"><span class="num" data-value="1">1</span></td><td class="ex-w">доброкачественность</td></tr><tr data-x="20"><td class="ex-n">20</td><td class="ex-c"><span class="num" data-value="2">2</span></td><td class="ex-w">Годуновых-Чердынцевых</td></tr><tr data-x="21"><td class="ex-n">21</td><td class="ex-c"><span class="num" data-value="1">1</span></td><td class="ex-w">новонатуралистической</td></tr><tr data-x="22"><td class="ex-n">22</td><td class="ex-c"><span class="num" data-value="1">1</span></td><td class="ex-w">жорж-сандово-царственное</td></tr><tr data-x="23"><td class="ex-n">23</td><td class="ex-c"><span class="num" data-value="1">1</span></td><td class="ex-w">ямщикнегонилошадейности</td></tr><tr data-x="24"><td class="ex-n">24</td><td class="ex-c"><span class="num" data-value="1">1</span></td><td class="ex-w">сентиментально-умственные</td></tr><tr data-x="25"><td class="ex-n">25</td><td class="ex-c"><span class="num" data-value="1">1</span></td><td class="ex-w">безобразно-продолжительных</td></tr><tr data-x="26"><td class="ex-n">26</td><td class="ex-c"><span class="num" data-value="1">1</span></td><td class="ex-w">откровенно-беззащитно-изящно</td></tr><tr data-x="27"><td class="ex-n">27</td><td class="ex-c"><span class="num" data-value="1">1</span></td><td class="ex-w">восторженно-благодарственным</td></tr><tr data-x="28"><td class="ex-n">28</td><td class="ex-c"><span class="num" data-value="1">1</span></td><td class="ex-w">великого-писателя-земли-русской</td></tr><tr data-x="30"><td class="ex-n">30</td><td class="ex-c"><span class="num" data-value="1">1</span></td><td class="ex-w">эгоизм-альтруизм-эгоизм-альтруизм</td></tr><tr data-x="31"><td class="ex-n">31</td><td class="ex-c"><span class="num" data-value="1">1</span></td><td class="ex-w">апокалиптически-апоплексическими</td></tr><tr data-x="63"><td class="ex-n">63</td><td class="ex-c"><span class="num" data-value="1">1</span></td><td class="ex-w">бриллиантоволуннолилитовосизолазоревогрозносапфиристосинелилово</td></tr></table></div><figure class="hist"><figcaption class="cap">Длина предложения, слов</figcaption><div class="hstats"><span class="hs"><span class="hs-l">среднее</span> <span class="num" data-value="22.764" data-decimals="3">22,764</span></span><span class="hs"><span class="hs-l">медиана</span> <span class="num" data-value="16">16</span></span><span class="hs"><span class="hs-l">мода</span> <span class="num" data-value="7">7</span></span><span class="hs"><span class="hs-l">максимум</span> <span class="num" data-value="263">263</span></span></div><div class="plot"><div class="grid"><span class="gl" style="--y:0.00000"><b>0</b></span><span class="gl" style="--y:0.50000"><b>100</b></span><span class="gl" style="--y:1.00000"><b>200</b></span></div><div class="cols"><i class=nz style="--h:0.44000" data-x="1" data-t="1 слово — 88 предложений"></i><i class=nz style="--h:0.62500" data-x="2" data-t="2 слова — 125 предложений"></i><i class=nz style="--h:0.83500" data-x="3" data-t="3 слова — 167 предложений"></i><i class=nz style="--h:0.88500" data-x="4" data-t="4 слова — 177 предложений"></i><i class=nz style="--h:0.89000" data-x="5" data-t="5 слов — 178 предложений"></i><i class=nz style="--h:0.92000" data-x="6" data-t="6 слов — 184 предложения"></i><i class=nz style="--h:0.96000" data-x="7" data-t="7 слов — 192 предложения"></i><i class=nz style="--h:0.81000" data-x="8" data-t="8 слов — 162 предложения"></i><i class=nz style="--h:0.77500" data-x="9" data-t="9 слов — 155 предложений"></i><i class=nz style="--h:0.73500" data-x="10" data-t="10 слов — 147 предложений"></i><i class=nz style="--h:0.69500" data-x="11" data-t="11 слов — 139 предложений"></i><i class=nz style="--h:0.57500" data-x="12" data-t="12 слов — 115 предложений"></i><i class=nz style="--h:0.60000" data-x="13" data-t="13 слов — 120 предложений"></i><i class=nz style="--h:0.61500" data-x="14" data-t="14 слов — 123 предложения"></i><i class=nz style="--h:0.58000" data-x="15" data-t="15 слов — 116 предложений"></i><i class=nz style="--h:0.50000" data-x="16" data-t="16 слов — 100 предложений"></i><i class=nz style="--h:0.67500" data-x="17" data-t="17 слов — 135 предложений"></i><i class=nz style="--h:0.55000" data-x="18" data-t="18 слов — 110 предложений"></i><i class=nz style="--h:0.48000" data-x="19" data-t="19 слов — 96 предложений"></i><i class=nz style="--h:0.49500" data-x="20" data-t="20 слов — 99 предложений"></i><i class=nz style="--h:0.44500" data-x="21" data-t="21 слово — 89 предложений"></i><i class=nz style="--h:0.43000" data-x="22" data-t="22 слова — 86 предложений"></i><i class=nz style="--h:0.36500" data-x="23" data-t="23 слова — 73 предложения"></i><i class=nz style="--h:0.39000" data-x="24" data-t="24 слова — 78 предложений"></i><i class=nz style="--h:0.28500" data-x="25" data-t="25 слов — 57 предложений"></i><i class=nz style="--h:0.35500" data-x="26" data-t="26 слов — 71 предложение"></i><i class=nz style="--h:0.37000" data-x="27" data-t="27 слов — 74 предложения"></i><i class=nz style="--h:0.31500" data-x="28" data-t="28 слов — 63 предложения"></i><i class=nz style="--h:0.34500" data-x="29" data-t="29 слов — 69 предложений"></i><i class=nz style="--h:0.32000" data-x="30" data-t="30 слов — 64 предложения"></i><i class=nz style="--h:0.25000" data-x="31" data-t="31 слово — 50 предложений"></i><i class=nz style="--h:0.25500" data-x="32" data-t="32 слова — 51 предложение"></i><i class=nz style="--h:0.19500" data-x="33" data-t="33 слова — 39 предложений"></i><i class=nz style="--h:0.32500" data-x="34" data-t="34 слова — 65 предложений"></i><i class=nz style="--h:0.22000" data-x="35" data-t="35 слов — 44 предложения"></i><i class=nz style="--h:0.17500" data-x="36" data-t="36 слов — 35 предложений"></i><i class=nz style="--h:0.20000" data-x="37" data-t="37 слов — 40 предложений"></i><i class=nz style="--h:0.14000" data-x="38" data-t="38 слов — 28 предложений"></i><i class=nz style="--h:0.17000" data-x="39" data-t="39 слов — 34 предложения"></i><i class=nz style="--h:0.17500" data-x="40" data-t="40 слов — 35 предложений"></i><i class=nz style="--h:0.17500" data-x="41" data-t="41 слово — 35 предложений"></i><i class=nz style="--h:0.13500" data-x="42" data-t="42 слова — 27 предложений"></i><i class=nz style="--h:0.13000" data-x="43" data-t="43 слова — 26 предложений"></i><i class=nz style="--h:0.13500" data-x="44" data-t="44 слова — 27 предложений"></i><i class=nz style="--h:0.12500" data-x="45" data-t="45 слов — 25 предложений"></i><i class=nz style="--h:0.07000" data-x="46" data-t="46 слов — 14 предложений"></i><i class=nz style="--h:0.15500" data-x="47" data-t="47 слов — 31 предложение"></i><i class=nz style="--h:0.09500" data-x="48" data-t="48 слов — 19 предложений"></i><i class=nz style="--h:0.08000" data-x="49" data-t="49 слов — 16 предложений"></i><i class=nz style="--h:0.09000" data-x="50" data-t="50 слов — 18 предложений"></i><i class=nz style="--h:0.08000" data-x="51" data-t="51 слово — 16 предложений"></i><i class=nz style="--h:0.07500" data-x="52" data-t="52 слова — 15 предложений"></i><i class=nz style="--h:0.09500" data-x="53" data-t="53 слова — 19 предложений"></i><i class=nz style="--h:0.11000" data-x="54" data-t="54 слова — 22 предложения"></i><i class=nz style="--h:0.06500" data-x="55" data-t="55 слов — 13 предложений"></i><i class=nz style="--h:0.12500" data-x="56" data-t="56 слов — 25 предложений"></i><i class=nz style="--h:0.07500" data-x="57" data-t="57 слов — 15 предложений"></i><i class=nz style="--h:0.06000" data-x="58" data-t="58 слов — 12 предложений"></i><i class=nz style="--h:0.07000" data-x="59" data-t="59 слов — 14 предложений"></i><i class=nz style="--h:0.07000" data-x="60" data-t="60 слов — 14 предложений"></i><i class=nz style="--h:0.03000" data-x="61" data-t="61 слово — 6 предложений"></i><i class=nz style="--h:0.03000" data-x="62" data-t="62 слова — 6 предложений"></i><i class=nz style="--h:0.05000" data-x="63" data-t="63 слова — 10 предложений"></i><i class=nz style="--h:0.06500" data-x="64" data-t="64 слова — 13 предложений"></i><i class=nz style="--h:0.04500" data-x="65" data-t="65 слов — 9 предложений"></i><i class=nz style="--h:0.03000" data-x="66" data-t="66 слов — 6 предложений"></i><i class=nz style="--h:0.03500" data-x="67" data-t="67 слов — 7 предложений"></i><i class=nz style="--h:0.05500" data-x="68" data-t="68 слов — 11 предложений"></i><i class=nz style="--h:0.03500" data-x="69" data-t="69 слов — 7 предложений"></i><i class=nz style="--h:0.04000" data-x="70" data-t="70 слов — 8 предложений"></i><i class=nz style="--h:0.01500" data-x="71" data-t="71 слово — 3 предложения"></i><i class=nz style="--h:0.03500" data-x="72" data-t="72 слова — 7 предложений"></i><i class=nz style="--h:0.06000" data-x="73" data-t="73 слова — 12 предложений"></i><i class=nz style="--h:0.01500" data-x="74" data-t="74 слова — 3 предложения"></i><i class=nz style="--h:0.04500" data-x="75" data-t="75 слов — 9 предложений"></i><i class=nz style="--h:0.02500" data-x="76" data-t="76 слов — 5 предложений"></i><i class=nz style="--h:0.01000" data-x="77" data-t="77 слов — 2 предложения"></i><i class=nz style="--h:0.01000" data-x="78" data-t="78 слов — 2 предложения"></i><i class=nz style="--h:0.02500" data-x="79" data-t="79 слов — 5 предложений"></i><i class=nz style="--h:0.01000" data-x="80" data-t="80 слов — 2 предложения"></i><i class=nz style="--h:0.03000" data-x="81" data-t="81 слово — 6 предложений"></i><i class=nz style="--h:0.03500" data-x="82" data-t="82 слова — 7 предложений"></i><i class=nz style="--h:0.03500" data-x="83" data-t="83 слова — 7 предложений"></i><i class=nz style="--h:0.02000" data-x="84" data-t="84 слова — 4 предложения"></i><i class=nz style="--h:0.02500" data-x="85" data-t="85 слов — 5 предложений"></i><i class=nz style="--h:0.01500" data-x="86" data-t="86 слов — 3 предложения"></i><i class=nz style="--h:0.02000" data-x="87" data-t="87 слов — 4 предложения"></i><i class=nz style="--h:0.02500" data-x="88" data-t="88 слов — 5 предложений"></i><i class=nz style="--h:0.00500" data-x="89" data-t="89 слов — 1 предложение"></i><i class=nz style="--h:0.00500" data-x="90" data-t="90 слов — 1 предложение"></i><i class=nz style="--h:0.02500" data-x="91" data-t="91 слово — 5 предложений"></i><i class=nz style="--h:0.00500" data-x="92" data-t="92 слова — 1 предложение"></i><i class=nz style="--h:0.00500" data-x="93" data-t="93 слова — 1 предложение"></i><i class=nz style="--h:0.00500" data-x="94" data-t="94 слова — 1 предложение"></i><i style="--h:0.00000" data-x="95" data-t="95 слов — 0 предложений"></i><i class=nz style="--h:0.00500" data-x="96" data-t="96 слов — 1 предложение"></i><i class=nz style="--h:0.01000" data-x="97" data-t="97 слов — 2 предложения"></i><i class=nz style="--h:0.01000" data-x="98" data-t="98 слов — 2 предложения"></i><i class=nz style="--h:0.01500" data-x="99" data-t="99 слов — 3 предложения"></i><i class=nz style="--h:0.01000" data-x="100" data-t="100 слов — 2 предложения"></i><i class=nz style="--h:0.01500" data-x="101" data-t="101 слово — 3 предложения"></i><i class=nz style="--h:0.01500" data-x="102" data-t="102 слова — 3 предложения"></i><i class=nz style="--h:0.02500" data-x="103" data-t="103 слова — 5 предложений"></i><i style="--h:0.00000" data-x="104" data-t="104 слова — 0 предложений"></i><i class=nz style="--h:0.00500" data-x="105" data-t="105 слов — 1 предложение"></i><i style="--h:0.00000" data-x="106" data-t="106 слов — 0 предложений"></i><i style="--h:0.00000" data-x="107" data-t="107 слов — 0 предложений"></i><i class=nz style="--h:0.01000" data-x="108" data-t="108 слов — 2 предложения"></i><i class=nz style="--h:0.00500" data-x="109" data-t="109 слов — 1 предложение"></i><i class=nz style="--h:0.01000" data-x="110" data-t="110 слов — 2 предложения"></i><i class=nz style="--h:0.01500" data-x="111" data-t="111 слов — 3 предложения"></i><i class=nz style="--h:0.00500" data-x="112" data-t="112 слов — 1 предложение"></i><i class=nz style="--h:0.01500" data-x="113" data-t="113 слов — 3 предложения"></i><i class=nz style="--h:0.01000" data-x="114" data-t="114 слов — 2 предложения"></i><i class=nz style="--h:0.00500" data-x="115" data-t="115 слов — 1 предложение"></i><i class=nz style="--h:0.01000" data-x="116" data-t="116 слов — 2 предложения"></i><i class=nz style="--h:0.00500" data-x="117" data-t="117 слов — 1 предложение"></i><i style="--h:0.00000" data-x="118" data-t="118 слов — 0 предложений"></i><i class=nz style="--h:0.00500" data-x="119" data-t="119 слов — 1 предложение"></i><i class=nz style="--h:0.02000" data-x="120" data-t="120 слов — 4 предложения"></i><i class=nz style="--h:0.00500" data-x="121" data-t="121 слово — 1 предложение"></i><i class=nz style="--h:0.00500" data-x="122" data-t="122 слова — 1 предложение"></i><i style="--h:0.00000" data-x="123" data-t="123 слова — 0 предложений"></i><i style="--h:0.00000" data-x="124" data-t="124 слова — 0 предложений"></i><i class=nz style="--h:0.00500" data-x="125" data-t="125 слов — 1 предложение"></i><i style="--h:0.00000" data-x="126" data-t="126 слов — 0 предложений"></i><i class=nz style="--h:0.00500" data-x="127" data-t="127 слов — 1 предложение"></i><i class=nz style="--h:0.01000" data-x="128" data-t="128 слов — 2 предложения"></i><i class=nz style="--h:0.00500" data-x="129" data-t="129 слов — 1 предложение"></i><i style="--h:0.00000" data-x="130" data-t="130 слов — 0 предложений"></i><i class=nz style="--h:0.00500" data-x="131" data-t="131 слово — 1 предложение"></i><i class=nz style="--h:0.00500" data-x="132" data-t="132 слова — 1 предложение"></i><i class=nz style="--h:0.00500" data-x="133" data-t="133 слова — 1 предложение"></i><i class=nz style="--h:0.00500" data-x="134" data-t="134 слова — 1 предложение"></i><i class=nz style="--h:0.00500" data-x="135" data-t="135 слов — 1 предложение"></i><i class=nz style="--h:0.00500" data-x="136" data-t="136 слов — 1 предложение"></i><i style="--h:0.00000" data-x="137" data-t="137 слов — 0 предложений"></i><i style="--h:0.00000" data-x="138" data-t="138 слов — 0 предложений"></i><i style="--h:0.00000" data-x="139" data-t="139 слов — 0 предложений"></i><i style="--h:0.00000" data-x="140" data-t="140 слов — 0 предложений"></i><i style="--h:0.00000" data-x="141" data-t="141 слово — 0 предложений"></i><i class=nz style="--h:0.00500" data-x="142" data-t="142 слова — 1 предложение"></i><i style="--h:0.00000" data-x="143" data-t="143 слова — 0 предложений"></i><i style="--h:0.00000" data-x="144" data-t="144 слова — 0 предложений"></i><i class=nz style="--h:0.01000" data-x="145" data-t="145 слов — 2 предложения"></i><i class=nz style="--h:0.01500" data-x="146" data-t="146 слов — 3 предложения"></i><i style="--h:0.00000" data-x="147" data-t="147 слов — 0 предложений"></i><i class=nz style="--h:0.01000" data-x="148" data-t="148 слов — 2 предложения"></i><i style="--h:0.00000" data-x="149" data-t="149 слов — 0 предложений"></i><i style="--h:0.00000" data-x="150" data-t="150 слов — 0 предложений"></i><i style="--h:0.00000" data-x="151" data-t="151 слово — 0 предложений"></i><i style="--h:0.00000" data-x="152" data-t="152 слова — 0 предложений"></i><i style="--h:0.00000" data-x="153" data-t="153 слова — 0 предложений"></i><i style="--h:0.00000" data-x="154" data-t="154 слова — 0 предложений"></i><i style="--h:0.00000" data-x="155" data-t="155 слов — 0 предложений"></i><i style="--h:0.00000" data-x="156" data-t="156 слов — 0 предложений"></i><i style="--h:0.00000" data-x="157" data-t="157 слов — 0 предложений"></i><i style="--h:0.00000" data-x="158" data-t="158 слов — 0 предложений"></i><i style="--h:0.00000" data-x="159" data-t="159 слов — 0 предложений"></i><i style="--h:0.00000" data-x="160" data-t="160 слов — 0 предложений"></i><i style="--h:0.00000" data-x="161" data-t="161 слово — 0 предложений"></i><i style="--h:0.00000" data-x="162" data-t="162 слова — 0 предложений"></i><i style="--h:0.00000" data-x="163" data-t="163 слова — 0 предложений"></i><i style="--h:0.00000" data-x="164" data-t="164 слова — 0 предложений"></i><i class=nz style="--h:0.01000" data-x="165" data-t="165 слов — 2 предложения"></i><i style="--h:0.00000" data-x="166" data-t="166 слов — 0 предложений"></i><i style="--h:0.00000" data-x="167" data-t="167 слов — 0 предложений"></i><i class=nz style="--h:0.00500" data-x="168" data-t="168 слов — 1 предложение"></i><i class=nz style="--h:0.00500" data-x="169" data-t="169 слов — 1 предложение"></i><i style="--h:0.00000" data-x="170" data-t="170 слов — 0 предложений"></i><i style="--h:0.00000" data-x="171" data-t="171 слово — 0 предложений"></i><i style="--h:0.00000" data-x="172" data-t="172 слова — 0 предложений"></i><i class=nz style="--h:0.00500" data-x="173" data-t="173 слова — 1 предложение"></i><i style="--h:0.00000" data-x="174" data-t="174 слова — 0 предложений"></i><i style="--h:0.00000" data-x="175" data-t="175 слов — 0 предложений"></i><i style="--h:0.00000" data-x="176" data-t="176 слов — 0 предложений"></i><i style="--h:0.00000" data-x="177" data-t="177 слов — 0 предложений"></i><i style="--h:0.00000" data-x="178" data-t="178 слов — 0 предложений"></i><i style="--h:0.00000" data-x="179" data-t="179 слов — 0 предложений"></i><i style="--h:0.00000" data-x="180" data-t="180 слов — 0 предложений"></i><i class=nz style="--h:0.00500" data-x="181" data-t="181 слово — 1 предложение"></i><i style="--h:0.00000" data-x="182" data-t="182 слова — 0 предложений"></i><i style="--h:0.00000" data-x="183" data-t="183 слова — 0 предложений"></i><i style="--h:0.00000" data-x="184" data-t="184 слова — 0 предложений"></i><i style="--h:0.00000" data-x="185" data-t="185 слов — 0 предложений"></i><i style="--h:0.00000" data-x="186" data-t="186 слов — 0 предложений"></i><i style="--h:0.00000" data-x="187" data-t="187 слов — 0 предложений"></i><i style="--h:0.00000" data-x="188" data-t="188 слов — 0 предложений"></i><i style="--h:0.00000" data-x="189" data-t="189 слов — 0 предложений"></i><i style="--h:0.00000" data-x="190" data-t="190 слов — 0 предложений"></i><i class=nz style="--h:0.00500" data-x="191" data-t="191 слово — 1 предложение"></i><i style="--h:0.00000" data-x="192" data-t="192 слова — 0 предложений"></i><i style="--h:0.00000" data-x="193" data-t="193 слова — 0 предложений"></i><i style="--h:0.00000" data-x="194" data-t="194 слова — 0 предложений"></i><i style="--h:0.00000" data-x="195" data-t="195 слов — 0 предложений"></i><i style="--h:0.00000" data-x="196" data-t="196 слов — 0 предложений"></i><i style="--h:0.00000" data-x="197" data-t="197 слов — 0 предложений"></i><i style="--h:0.00000" data-x="198" data-t="198 слов — 0 предложений"></i><i style="--h:0.00000" data-x="199" data-t="199 слов — 0 предложений"></i><i style="--h:0.00000" data-x="200" data-t="200 слов — 0 предложений"></i><i style="--h:0.00000" data-x="201" data-t="201 слово — 0 предложений"></i><i style="--h:0.00000" data-x="202" data-t="202 слова — 0 предложений"></i><i style="--h:0.00000" data-x="203" data-t="203 слова — 0 предложений"></i><i style="--h:0.00000" data-x="204" data-t="204 слова — 0 предложений"></i><i class=nz style="--h:0.00500" data-x="205" data-t="205 слов — 1 предложение"></i><i style="--h:0.00000" data-x="206" data-t="206 слов — 0 предложений"></i><i style="--h:0.00000" data-x="207" data-t="207 слов — 0 предложений"></i><i class=nz style="--h:0.00500" data-x="208" data-t="208 слов — 1 предложение"></i><i style="--h:0.00000" data-x="209" data-t="209 слов — 0 предложений"></i><i style="--h:0.00000" data-x="210" data-t="210 слов — 0 предложений"></i><i style="--h:0.00000" data-x="211" data-t="211 слов — 0 предложений"></i><i style="--h:0.00000" data-x="212" data-t="212 слов — 0 предложений"></i><i style="--h:0.00000" data-x="213" data-t="213 слов — 0 предложений"></i><i style="--h:0.00000" data-x="214" data-t="214 слов — 0 предложений"></i><i style="--h:0.00000" data-x="215" data-t="215 слов — 0 предложений"></i><i style="--h:0.00000" data-x="216" data-t="216 слов — 0 предложений"></i><i style="--h:0.00000" data-x="217" data-t="217 слов — 0 предложений"></i><i style="--h:0.00000" data-x="218" data-t="218 слов — 0 предложений"></i><i style="--h:0.00000" data-x="219" data-t="219 слов — 0 предложений"></i><i style="--h:0.00000" data-x="220" data-t="220 слов — 0 предложений"></i><i style="--h:0.00000" data-x="221" data-t="221 слово — 0 предложений"></i><i style="--h:0.00000" data-x="222" data-t="222 слова — 0 предложений"></i><i style="--h:0.00000" data-x="223" data-t="223 слова — 0 предложений"></i><i style="--h:0.00000" data-x="224" data-t="224 слова — 0 предложений"></i><i style="--h:0.00000" data-x="225" data-t="225 слов — 0 предложений"></i><i style="--h:0.00000" data-x="226" data-t="226 слов — 0 предложений"></i><i style="--h:0.00000" data-x="227" data-t="227 слов — 0 предложений"></i><i style="--h:0.00000" data-x="228" data-t="228 слов — 0 предложений"></i><i style="--h:0.00000" data-x="229" data-t="229 слов — 0 предложений"></i><i style="--h:0.00000" data-x="230" data-t="230 слов — 0 предложений"></i><i style="--h:0.00000" data-x="231" data-t="231 слово — 0 предложений"></i><i style="--h:0.00000" data-x="232" data-t="232 слова — 0 предложений"></i><i style="--h:0.00000" data-x="233" data-t="233 слова — 0 предложений"></i><i style="--h:0.00000" data-x="234" data-t="234 слова — 0 предложений"></i><i style="--h:0.00000" data-x="235" data-t="235 слов — 0 предложений"></i><i class=nz style="--h:0.00500" data-x="236" data-t="236 слов — 1 предложение"></i><i style="--h:0.00000" data-x="237" data-t="237 слов — 0 предложений"></i><i style="--h:0.00000" data-x="238" data-t="238 слов — 0 предложений"></i><i style="--h:0.00000" data-x="239" data-t="239 слов — 0 предложений"></i><i class=nz style="--h:0.00500" data-x="240" data-t="240 слов — 1 предложение"></i><i style="--h:0.00000" data-x="241" data-t="241 слово — 0 предложений"></i><i style="--h:0.00000" data-x="242" data-t="242 слова — 0 предложений"></i><i style="--h:0.00000" data-x="243" data-t="243 слова — 0 предложений"></i><i style="--h:0.00000" data-x="244" data-t="244 слова — 0 предложений"></i><i style="--h:0.00000" data-x="245" data-t="245 слов — 0 предложений"></i><i style="--h:0.00000" data-x="246" data-t="246 слов — 0 предложений"></i><i style="--h:0.00000" data-x="247" data-t="247 слов — 0 предложений"></i><i style="--h:0.00000" data-x="248" data-t="248 слов — 0 предложений"></i><i style="--h:0.00000" data-x="249" data-t="249 слов — 0 предложений"></i><i style="--h:0.00000" data-x="250" data-t="250 слов — 0 предложений"></i><i style="--h:0.00000" data-x="251" data-t="251 слово — 0 предложений"></i><i style="--h:0.00000" data-x="252" data-t="252 слова — 0 предложений"></i><i style="--h:0.00000" data-x="253" data-t="253 слова — 0 предложений"></i><i style="--h:0.00000" data-x="254" data-t="254 слова — 0 предложений"></i><i style="--h:0.00000" data-x="255" data-t="255 слов — 0 предложений"></i><i style="--h:0.00000" data-x="256" data-t="256 слов — 0 предложений"></i><i class=nz style="--h:0.00500" data-x="257" data-t="257 слов — 1 предложение"></i><i style="--h:0.00000" data-x="258" data-t="258 слов — 0 предложений"></i><i style="--h:0.00000" data-x="259" data-t="259 слов — 0 предложений"></i><i style="--h:0.00000" data-x="260" data-t="260 слов — 0 предложений"></i><i style="--h:0.00000" data-x="261" data-t="261 слово — 0 предложений"></i><i style="--h:0.00000" data-x="262" data-t="262 слова — 0 предложений"></i><i class=nz style="--h:0.00500" data-x="263" data-t="263 слова — 1 предложение"></i></div><div class="tip" hidden></div></div><div class="xax"><span style="--x:0.00190">1</span><span style="--x:0.18821">50</span><span style="--x:0.37833">100</span><span style="--x:0.56844">150</span><span style="--x:0.75856">200</span><span style="--x:0.99810">263</span></div><div class="sr-only"><table><caption>Длина предложения, слов</caption><tr><th>длина — предложений</th></tr><tr><td>1 слово — 88 предложений</td></tr><tr><td>2 слова — 125 предложений</td></tr><tr><td>3 слова — 167 предложений</td></tr><tr><td>4 слова — 177 предложений</td></tr><tr><td>5 слов — 178 предложений</td></tr><tr><td>6 слов — 184 предложения</td></tr><tr><td>7 слов — 192 предложения</td></tr><tr><td>8 слов — 162 предложения</td></tr><tr><td>9 слов — 155 предложений</td></tr><tr><td>10 слов — 147 предложений</td></tr><tr><td>11 слов — 139 предложений</td></tr><tr><td>12 слов — 115 предложений</td></tr><tr><td>13 слов — 120 предложений</td></tr><tr><td>14 слов — 123 предложения</td></tr><tr><td>15 слов — 116 предложений</td></tr><tr><td>16 слов — 100 предложений</td></tr><tr><td>17 слов — 135 предложений</td></tr><tr><td>18 слов — 110 предложений</td></tr><tr><td>19 слов — 96 предложений</td></tr><tr><td>20 слов — 99 предложений</td></tr><tr><td>21 слово — 89 предложений</td></tr><tr><td>22 слова — 86 предложений</td></tr><tr><td>23 слова — 73 предложения</td></tr><tr><td>24 слова — 78 предложений</td></tr><tr><td>25 слов — 57 предложений</td></tr><tr><td>26 слов — 71 предложение</td></tr><tr><td>27 слов — 74 предложения</td></tr><tr><td>28 слов — 63 предложения</td></tr><tr><td>29 слов — 69 предложений</td></tr><tr><td>30 слов — 64 предложения</td></tr><tr><td>31 слово — 50 предложений</td></tr><tr><td>32 слова — 51 предложение</td></tr><tr><td>33 слова — 39 предложений</td></tr><tr><td>34 слова — 65 предложений</td></tr><tr><td>35 слов — 44 предложения</td></tr><tr><td>36 слов — 35 предложений</td></tr><tr><td>37 слов — 40 предложений</td></tr><tr><td>38 слов — 28 предложений</td></tr><tr><td>39 слов — 34 предложения</td></tr><tr><td>40 слов — 35 предложений</td></tr><tr><td>41 слово — 35 предложений</td></tr><tr><td>42 слова — 27 предложений</td></tr><tr><td>43 слова — 26 предложений</td></tr><tr><td>44 слова — 27 предложений</td></tr><tr><td>45 слов — 25 предложений</td></tr><tr><td>46 слов — 14 предложений</td></tr><tr><td>47 слов — 31 предложение</td></tr><tr><td>48 слов — 19 предложений</td></tr><tr><td>49 слов — 16 предложений</td></tr><tr><td>50 слов — 18 предложений</td></tr><tr><td>51 слово — 16 предложений</td></tr><tr><td>52 слова — 15 предложений</td></tr><tr><td>53 слова — 19 предложений</td></tr><tr><td>54 слова — 22 предложения</td></tr><tr><td>55 слов — 13 предложений</td></tr><tr><td>56 слов — 25 предложений</td></tr><tr><td>57 слов — 15 предложений</td></tr><tr><td>58 слов — 12 предложений</td></tr><tr><td>59 слов — 14 предложений</td></tr><tr><td>60 слов — 14 предложений</td></tr><tr><td>61 слово — 6 предложений</td></tr><tr><td>62 слова — 6 предложений</td></tr><tr><td>63 слова — 10 предложений</td></tr><tr><td>64 слова — 13 предложений</td></tr><tr><td>65 слов — 9 предложений</td></tr><tr><td>66 слов — 6 предложений</td></tr><tr><td>67 слов — 7 предложений</td></tr><tr><td>68 слов — 11 предложений</td></tr><tr><td>69 слов — 7 предложений</td></tr><tr><td>70 слов — 8 предложений</td></tr><tr><td>71 слово — 3 предложения</td></tr><tr><td>72 слова — 7 предложений</td></tr><tr><td>73 слова — 12 предложений</td></tr><tr><td>74 слова — 3 предложения</td></tr><tr><td>75 слов — 9 предложений</td></tr><tr><td>76 слов — 5 предложений</td></tr><tr><td>77 слов — 2 предложения</td></tr><tr><td>78 слов — 2 предложения</td></tr><tr><td>79 слов — 5 предложений</td></tr><tr><td>80 слов — 2 предложения</td></tr><tr><td>81 слово — 6 предложений</td></tr><tr><td>82 слова — 7 предложений</td></tr><tr><td>83 слова — 7 предложений</td></tr><tr><td>84 слова — 4 предложения</td></tr><tr><td>85 слов — 5 предложений</td></tr><tr><td>86 слов — 3 предложения</td></tr><tr><td>87 слов — 4 предложения</td></tr><tr><td>88 слов — 5 предложений</td></tr><tr><td>89 слов — 1 предложение</td></tr><tr><td>90 слов — 1 предложение</td></tr><tr><td>91 слово — 5 предложений</td></tr><tr><td>92 слова — 1 предложение</td></tr><tr><td>93 слова — 1 предложение</td></tr><tr><td>94 слова — 1 предложение</td></tr><tr><td>95 слов — 0 предложений</td></tr><tr><td>96 слов — 1 предложение</td></tr><tr><td>97 слов — 2 предложения</td></tr><tr><td>98 слов — 2 предложения</td></tr><tr><td>99 слов — 3 предложения</td></tr><tr><td>100 слов — 2 предложения</td></tr><tr><td>101 слово — 3 предложения</td></tr><tr><td>102 слова — 3 предложения</td></tr><tr><td>103 слова — 5 предложений</td></tr><tr><td>104 слова — 0 предложений</td></tr><tr><td>105 слов — 1 предложение</td></tr><tr><td>106 слов — 0 предложений</td></tr><tr><td>107 слов — 0 предложений</td></tr><tr><td>108 слов — 2 предложения</td></tr><tr><td>109 слов — 1 предложение</td></tr><tr><td>110 слов — 2 предложения</td></tr><tr><td>111 слов — 3 предложения</td></tr><tr><td>112 слов — 1 предложение</td></tr><tr><td>113 слов — 3 предложения</td></tr><tr><td>114 слов — 2 предложения</td></tr><tr><td>115 слов — 1 предложение</td></tr><tr><td>116 слов — 2 предложения</td></tr><tr><td>117 слов — 1 предложение</td></tr><tr><td>118 слов — 0 предложений</td></tr><tr><td>119 слов — 1 предложение</td></tr><tr><td>120 слов — 4 предложения</td></tr><tr><td>121 слово — 1 предложение</td></tr><tr><td>122 слова — 1 предложение</td></tr><tr><td>123 слова — 0 предложений</td></tr><tr><td>124 слова — 0 предложений</td></tr><tr><td>125 слов — 1 предложение</td></tr><tr><td>126 слов — 0 предложений</td></tr><tr><td>127 слов — 1 предложение</td></tr><tr><td>128 слов — 2 предложения</td></tr><tr><td>129 слов — 1 предложение</td></tr><tr><td>130 слов — 0 предложений</td></tr><tr><td>131 слово — 1 предложение</td></tr><tr><td>132 слова — 1 предложение</td></tr><tr><td>133 слова — 1 предложение</td></tr><tr><td>134 слова — 1 предложение</td></tr><tr><td>135 слов — 1 предложение</td></tr><tr><td>136 слов — 1 предложение</td></tr><tr><td>137 слов — 0 предложений</td></tr><tr><td>138 слов — 0 предложений</td></tr><tr><td>139 слов — 0 предложений</td></tr><tr><td>140 слов — 0 предложений</td></tr><tr><td>141 слово — 0 предложений</td></tr><tr><td>142 слова — 1 предложение</td></tr><tr><td>143 слова — 0 предложений</td></tr><tr><td>144 слова — 0 предложений</td></tr><tr><td>145 слов — 2 предложения</td></tr><tr><td>146 слов — 3 предложения</td></tr><tr><td>147 слов — 0 предложений</td></tr><tr><td>148 слов — 2 предложения</td></tr><tr><td>149 слов — 0 предложений</td></tr><tr><td>150 слов — 0 предложений</td></tr><tr><td>151 слово — 0 предложений</td></tr><tr><td>152 слова — 0 предложений</td></tr><tr><td>153 слова — 0 предложений</td></tr><tr><td>154 слова — 0 предложений</td></tr><tr><td>155 слов — 0 предложений</td></tr><tr><td>156 слов — 0 предложений</td></tr><tr><td>157 слов — 0 предложений</td></tr><tr><td>158 слов — 0 предложений</td></tr><tr><td>159 слов — 0 предложений</td></tr><tr><td>160 слов — 0 предложений</td></tr><tr><td>161 слово — 0 предложений</td></tr><tr><td>162 слова — 0 предложений</td></tr><tr><td>163 слова — 0 предложений</td></tr><tr><td>164 слова — 0 предложений</td></tr><tr><td>165 слов — 2 предложения</td></tr><tr><td>166 слов — 0 предложений</td></tr><tr><td>167 слов — 0 предложений</td></tr><tr><td>168 слов — 1 предложение</td></tr><tr><td>169 слов — 1 предложение</td></tr><tr><td>170 слов — 0 предложений</td></tr><tr><td>171 слово — 0 предложений</td></tr><tr><td>172 слова — 0 предложений</td></tr><tr><td>173 слова — 1 предложение</td></tr><tr><td>174 слова — 0 предложений</td></tr><tr><td>175 слов — 0 предложений</td></tr><tr><td>176 слов — 0 предложений</td></tr><tr><td>177 слов — 0 предложений</td></tr><tr><td>178 слов — 0 предложений</td></tr><tr><td>179 слов — 0 предложений</td></tr><tr><td>180 слов — 0 предложений</td></tr><tr><td>181 слово — 1 предложение</td></tr><tr><td>182 слова — 0 предложений</td></tr><tr><td>183 слова — 0 предложений</td></tr><tr><td>184 слова — 0 предложений</td></tr><tr><td>185 слов — 0 предложений</td></tr><tr><td>186 слов — 0 предложений</td></tr><tr><td>187 слов — 0 предложений</td></tr><tr><td>188 слов — 0 предложений</td></tr><tr><td>189 слов — 0 предложений</td></tr><tr><td>190 слов — 0 предложений</td></tr><tr><td>191 слово — 1 предложение</td></tr><tr><td>192 слова — 0 предложений</td></tr><tr><td>193 слова — 0 предложений</td></tr><tr><td>194 слова — 0 предложений</td></tr><tr><td>195 слов — 0 предложений</td></tr><tr><td>196 слов — 0 предложений</td></tr><tr><td>197 слов — 0 предложений</td></tr><tr><td>198 слов — 0 предложений</td></tr><tr><td>199 слов — 0 предложений</td></tr><tr><td>200 слов — 0 предложений</td></tr><tr><td>201 слово — 0 предложений</td></tr><tr><td>202 слова — 0 предложений</td></tr><tr><td>203 слова — 0 предложений</td></tr><tr><td>204 слова — 0 предложений</td></tr><tr><td>205 слов — 1 предложение</td></tr><tr><td>206 слов — 0 предложений</td></tr><tr><td>207 слов — 0 предложений</td></tr><tr><td>208 слов — 1 предложение</td></tr><tr><td>209 слов — 0 предложений</td></tr><tr><td>210 слов — 0 предложений</td></tr><tr><td>211 слов — 0 предложений</td></tr><tr><td>212 слов — 0 предложений</td></tr><tr><td>213 слов — 0 предложений</td></tr><tr><td>214 слов — 0 предложений</td></tr><tr><td>215 слов — 0 предложений</td></tr><tr><td>216 слов — 0 предложений</td></tr><tr><td>217 слов — 0 предложений</td></tr><tr><td>218 слов — 0 предложений</td></tr><tr><td>219 слов — 0 предложений</td></tr><tr><td>220 слов — 0 предложений</td></tr><tr><td>221 слово — 0 предложений</td></tr><tr><td>222 слова — 0 предложений</td></tr><tr><td>223 слова — 0 предложений</td></tr><tr><td>224 слова — 0 предложений</td></tr><tr><td>225 слов — 0 предложений</td></tr><tr><td>226 слов — 0 предложений</td></tr><tr><td>227 слов — 0 предложений</td></tr><tr><td>228 слов — 0 предложений</td></tr><tr><td>229 слов — 0 предложений</td></tr><tr><td>230 слов — 0 предложений</td></tr><tr><td>231 слово — 0 предложений</td></tr><tr><td>232 слова — 0 предложений</td></tr><tr><td>233 слова — 0 предложений</td></tr><tr><td>234 слова — 0 предложений</td></tr><tr><td>235 слов — 0 предложений</td></tr><tr><td>236 слов — 1 предложение</td></tr><tr><td>237 слов — 0 предложений</td></tr><tr><td>238 слов — 0 предложений</td></tr><tr><td>239 слов — 0 предложений</td></tr><tr><td>240 слов — 1 предложение</td></tr><tr><td>241 слово — 0 предложений</td></tr><tr><td>242 слова — 0 предложений</td></tr><tr><td>243 слова — 0 предложений</td></tr><tr><td>244 слова — 0 предложений</td></tr><tr><td>245 слов — 0 предложений</td></tr><tr><td>246 слов — 0 предложений</td></tr><tr><td>247 слов — 0 предложений</td></tr><tr><td>248 слов — 0 предложений</td></tr><tr><td>249 слов — 0 предложений</td></tr><tr><td>250 слов — 0 предложений</td></tr><tr><td>251 слово — 0 предложений</td></tr><tr><td>252 слова — 0 предложений</td></tr><tr><td>253 слова — 0 предложений</td></tr><tr><td>254 слова — 0 предложений</td></tr><tr><td>255 слов — 0 предложений</td></tr><tr><td>256 слов — 0 предложений</td></tr><tr><td>257 слов — 1 предложение</td></tr><tr><td>258 слов — 0 предложений</td></tr><tr><td>259 слов — 0 предложений</td></tr><tr><td>260 слов — 0 предложений</td></tr><tr><td>261 слово — 0 предложений</td></tr><tr><td>262 слова — 0 предложений</td></tr><tr><td>263 слова — 1 предложение</td></tr></table></div></figure></div>
+  </section>
+
+  <section class="floor lex-floor">
+    <h2 class="sub-h">Лексическое разнообразие</h2>
+    <div class="reveal"><div class="bars"><p class="cap">Доля от всех слов текста</p><div class="br p4"><span class="bl">слов<span class="bx">все слова текста подряд, с повторами</span></span><span class="bt"><i style="--w:1.00000"></i></span><span class="bn"><span class="num" data-value="103328">103 328</span></span><span class="bp"></span></div><div class="br p4"><span class="bl">разных словоформ<span class="bx">разные слова в том виде, как написаны: «дом», «дома» и «домом» — три словоформы</span></span><span class="bt"><i style="--w:0.30299"></i></span><span class="bn"><span class="num" data-value="31307">31 307</span></span><span class="bp"><span class="num" data-value="30.299" data-decimals="3">30,299</span> %</span></div><div class="br p4"><span class="bl">разных лемм<span class="bx">разные слова в начальной форме: «дом», «дома» и «домом» — одна лемма «дом»</span></span><span class="bt"><i style="--w:0.15521"></i></span><span class="bn"><span class="num" data-value="16038">16 038</span></span><span class="bp"><span class="num" data-value="15.521" data-decimals="3">15,521</span> %</span></div><div class="br p4"><span class="bl">лемм, которые встречаются один раз<span class="bx">леммы, которые в тексте встречаются ровно один раз, в любой форме</span></span><span class="bt"><i style="--w:0.07978"></i></span><span class="bn"><span class="num" data-value="8244">8244</span></span><span class="bp"><span class="num" data-value="7.978" data-decimals="3">7,978</span> %</span></div></div><div class="bars"><p class="cap">Доля от всех лемм и от окна в <span class="nb">1000</span> слов</p><div class="br p4"><span class="bl">однократные леммы среди всех лемм<span class="bx">какая часть всех лемм встречается в тексте один раз</span></span><span class="bt"><i style="--w:0.51403"></i></span><span class="bn"></span><span class="bp"><span class="num" data-value="51.403" data-decimals="3">51,403</span> %</span></div><div class="br p4"><span class="bl">разных лемм в окне <span class="nb">1000</span> слов, в среднем<span class="bx">в каждом отрезке из <span class="nb">1000</span> слов подряд считаются разные леммы, результат усредняется по всем отрезкам; от длины текста не зависит, поэтому годится для сравнения произведений</span></span><span class="bt"><i style="--w:0.59105"></i></span><span class="bn"><span class="num" data-value="591.051" data-decimals="3">591,051</span></span><span class="bp"><span class="num" data-value="59.105" data-decimals="3">59,105</span> %</span></div></div></div>
+  </section>
+
+  <section class="floor color-floor">
+    <div class="head">
+      <h2 class="sub-h">Самый частый цвет</h2>
+      <div class="head-num"><span class="figure"><span class="num" data-value="98">98</span></span><span class="unit">упоминаний</span></div>
+    </div>
+    <p class="color-word big" style="--c:#111111">черный</p>
+    <div class="reveal"><div class="bars colorbars"><div class="br"><span class="bl cname">черный</span><span class="bt"><i class="ph tn" style="--w:1.00000;--c:#111111;background-image:url('assets/colors/chernyj.jpg');--tint:#3a3a3a"></i></span><span class="bn"><span class="num" data-value="98">98</span></span></div><div class="br"><span class="bl cname">белый</span><span class="bt"><i class="lt ph" style="--w:0.61224;--c:#ffffff;background-image:url('assets/colors/belyj.jpg')"></i></span><span class="bn"><span class="num" data-value="60">60</span></span></div><div class="br"><span class="bl cname">красный</span><span class="bt"><i class="ph" style="--w:0.36735;--c:#b3261e;background-image:url('assets/colors/krasnyj.jpg')"></i></span><span class="bn"><span class="num" data-value="36">36</span></span></div><div class="br"><span class="bl cname">желтый</span><span class="bt"><i class="ph" style="--w:0.26531;--c:#e3b505;background-image:url('assets/colors/zheltyj.jpg')"></i></span><span class="bn"><span class="num" data-value="26">26</span></span></div><div class="br"><span class="bl cname">зеленый</span><span class="bt"><i class="ph" style="--w:0.26531;--c:#2f6b3a;background-image:url('assets/colors/zelenyj.jpg')"></i></span><span class="bn"><span class="num" data-value="26">26</span></span></div><div class="br"><span class="bl cname">синий</span><span class="bt"><i class="ph" style="--w:0.23469;--c:#1f3c88;background-image:url('assets/colors/sinij.jpg')"></i></span><span class="bn"><span class="num" data-value="23">23</span></span></div><div class="br"><span class="bl cname">розовый</span><span class="bt"><i class="ph" style="--w:0.23469;--c:#e3a1b4;background-image:url('assets/colors/rozovyj.jpg')"></i></span><span class="bn"><span class="num" data-value="23">23</span></span></div><div class="br"><span class="bl cname">серый</span><span class="bt"><i class="ph" style="--w:0.22449;--c:#8c8c8c;background-image:url('assets/colors/seryj.jpg')"></i></span><span class="bn"><span class="num" data-value="22">22</span></span></div><div class="br"><span class="bl cname">золотой</span><span class="bt"><i class="ph" style="--w:0.21429;--c:#c9a227;background-image:url('assets/colors/zolotoj.jpg')"></i></span><span class="bn"><span class="num" data-value="21">21</span></span></div><div class="br"><span class="bl cname">голубой</span><span class="bt"><i class="ph" style="--w:0.15306;--c:#7fb2dc;background-image:url('assets/colors/goluboj.jpg')"></i></span><span class="bn"><span class="num" data-value="15">15</span></span></div><div class="br"><span class="bl cname">коричневый</span><span class="bt"><i class="ph tn" style="--w:0.11224;--c:#6b4226;background-image:url('assets/colors/korichnevyj.jpg');--tint:#a87850"></i></span><span class="bn"><span class="num" data-value="11">11</span></span></div><div class="br"><span class="bl cname">оранжевый</span><span class="bt"><i class="ph" style="--w:0.10204;--c:#d9731a;background-image:url('assets/colors/oranzhevyj.jpg')"></i></span><span class="bn"><span class="num" data-value="10">10</span></span></div><div class="br"><span class="bl cname">серебряный</span><span class="bt"><i class="ph" style="--w:0.09184;--c:#b8b8b8;background-image:url('assets/colors/serebryanyj.jpg')"></i></span><span class="bn"><span class="num" data-value="9">9</span></span></div><div class="br"><span class="bl cname">бронзовый</span><span class="bt"><i class="ph" style="--w:0.07143;--c:#9c6a33;background-image:url('assets/colors/bronzovyj.jpg')"></i></span><span class="bn"><span class="num" data-value="7">7</span></span></div><div class="br"><span class="bl cname">синеватый</span><span class="bt"><i class="ph" style="--w:0.06122;--c:#4f6fa8;background-image:url('assets/colors/sinevatyj.jpg')"></i></span><span class="bn"><span class="num" data-value="6">6</span></span></div><div class="br"><span class="bl cname">рыжий</span><span class="bt"><i class="ph" style="--w:0.06122;--c:#c0541f;background-image:url('assets/colors/ryzhij.jpg')"></i></span><span class="bn"><span class="num" data-value="6">6</span></span></div></div></div>
+  </section>
+
+  <section class="floor two comp-floor">
+    <div class="text">
+      <h2 class="sub-h">Самый частый составной цвет</h2>
+      <p class="color-word">красно-синий</p>
+    </div>
+    <div class="data">
+      <div class="data-in reveal">
+        <div class="figure"><span class="num" data-value="3">3</span></div>
+        <div class="unit">упоминания</div>
+        <div class="pair2"><span class="fig2"><span class="num" data-value="44">44</span></span><span class="unit">составных цвета</span></div>
+        <div class="pair2"><span class="fig2"><span class="num" data-value="48">48</span></span><span class="unit">упоминаний</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="floor pal-floor">
+    <div class="head">
+      <h2 class="sub-h">Палитра Набокова</h2>
+      <div class="head-num"><span class="figure"><span class="num" data-value="75">75</span></span><span class="unit">цветов</span></div>
+    </div>
+    <div class="pal reveal">
+      <canvas class="pal-canvas" aria-hidden="true"></canvas>
+      <div class="pal-strip" aria-hidden="true"><i style="--k:98;--c:#111111"></i><i class=lt style="--k:60;--c:#ffffff"></i><i style="--k:36;--c:#b3261e"></i><i style="--k:26;--c:#e3b505"></i><i style="--k:26;--c:#2f6b3a"></i><i style="--k:23;--c:#1f3c88"></i><i style="--k:23;--c:#e3a1b4"></i><i style="--k:22;--c:#8c8c8c"></i><i style="--k:21;--c:#c9a227"></i><i style="--k:15;--c:#7fb2dc"></i><i style="--k:11;--c:#6b4226"></i><i style="--k:10;--c:#d9731a"></i><i style="--k:9;--c:#b8b8b8"></i><i style="--k:7;--c:#9c6a33"></i><i style="--k:6;--c:#4f6fa8"></i><i style="--k:6;--c:#c0541f"></i><i style="--k:5;--c:#7a5a33"></i><i style="--k:5;--c:#a5482c"></i><i style="--k:5;--c:#7d8a9a"></i><i style="--k:5;--c:#2f7fbf"></i><i style="--k:5;--c:#b0662f"></i><i style="--k:5;--c:#5b3a8c"></i><i style="--k:5;--c:#3aa6a0"></i><i style="--k:5;--c:#c87a45"></i><i style="--k:4;--c:#e9e4dc"></i><i class=lt style="--k:4;--c:#f2eee3"></i><i style="--k:4;--c:#141414"></i><i style="--k:4;--c:#a8a39d"></i><i style="--k:4;--c:#222222"></i><i style="--k:4;--c:#e6cc6a"></i><i style="--k:4;--c:#9cc2e2"></i><i style="--k:4;--c:#8e6aa8"></i><i style="--k:3;--c:#a2471b"></i><i style="--k:3;--c:#4a6fd1"></i><i style="--k:3;--c:#e8d9b5"></i><i style="--k:3;--c:#6f4e37"></i><i style="--k:3;--c:#6b3a22"></i><i style="--k:3;--c:#8a7f72"></i><i style="--k:3;--c:#e6c3a8"></i><i style="--k:3;--c:#3d7fc4"></i><i style="--k:3;--c:#a61d4a"></i><i style="--k:3;--c:#d4af37"></i><i class=lt style="--k:3;--c:#ffffff"></i><i style="--k:2;--c:#1c1a17"></i><i style="--k:2;--c:#7a8590"></i><i style="--k:2;--c:#8c8c8c"></i><i style="--k:2;--c:#6e1423"></i><i style="--k:2;--c:#b7a0d4"></i><i style="--k:2;--c:#6f4e37"></i><i style="--k:2;--c:#9a9a9a"></i><i style="--k:2;--c:#1f7a52"></i><i style="--k:2;--c:#e9b8c4"></i><i class=lt style="--k:2;--c:#eeeeea"></i><i style="--k:2;--c:#c4c4c4"></i><i style="--k:2;--c:#d9971b"></i><i style="--k:1;--c:#f1e5c8"></i><i style="--k:1;--c:#d11a2a"></i><i style="--k:1;--c:#b0183a"></i><i style="--k:1;--c:#e4cf8c"></i><i style="--k:1;--c:#7a1c1c"></i><i style="--k:1;--c:#a8c47a"></i><i style="--k:1;--c:#c25a4e"></i><i style="--k:1;--c:#c08a3e"></i><i style="--k:1;--c:#4e2e1e"></i><i style="--k:1;--c:#8c5fa8"></i><i style="--k:1;--c:#d6c08f"></i><i style="--k:1;--c:#2a3f9e"></i><i style="--k:1;--c:#722f37"></i><i style="--k:1;--c:#7d1f5c"></i><i style="--k:1;--c:#a48bbd"></i><i style="--k:1;--c:#e8d33f"></i><i style="--k:1;--c:#f2a65a"></i><i style="--k:1;--c:#7b1e2a"></i><i style="--k:1;--c:#6f9a6a"></i><i style="--k:1;--c:#c98a2b"></i></div>
+      <p class="pal-read" aria-hidden="true"><span class="pal-def"><span class="num" data-value="548">548</span> упоминаний</span><span class="pal-on" hidden><i class="pal-sw"></i><span class="pal-n"></span><span class="pal-k"></span><span class="pal-p"></span></span></p>
+      <div class="sr-only"><table><caption>Палитра Набокова</caption><tr><th scope="row">черный</th><td>98</td></tr><tr><th scope="row">белый</th><td>60</td></tr><tr><th scope="row">красный</th><td>36</td></tr><tr><th scope="row">желтый</th><td>26</td></tr><tr><th scope="row">зеленый</th><td>26</td></tr><tr><th scope="row">синий</th><td>23</td></tr><tr><th scope="row">розовый</th><td>23</td></tr><tr><th scope="row">серый</th><td>22</td></tr><tr><th scope="row">золотой</th><td>21</td></tr><tr><th scope="row">голубой</th><td>15</td></tr><tr><th scope="row">коричневый</th><td>11</td></tr><tr><th scope="row">оранжевый</th><td>10</td></tr><tr><th scope="row">серебряный</th><td>9</td></tr><tr><th scope="row">бронзовый</th><td>7</td></tr><tr><th scope="row">синеватый</th><td>6</td></tr><tr><th scope="row">рыжий</th><td>6</td></tr><tr><th scope="row">табачный</th><td>5</td></tr><tr><th scope="row">кирпичный</th><td>5</td></tr><tr><th scope="row">сизый</th><td>5</td></tr><tr><th scope="row">лазурный</th><td>5</td></tr><tr><th scope="row">медный</th><td>5</td></tr><tr><th scope="row">фиолетовый</th><td>5</td></tr><tr><th scope="row">бирюзовый</th><td>5</td></tr><tr><th scope="row">рыжеватый</th><td>5</td></tr><tr><th scope="row">перламутровый</th><td>4</td></tr><tr><th scope="row">молочный</th><td>4</td></tr><tr><th scope="row">вороной</th><td>4</td></tr><tr><th scope="row">пепельный</th><td>4</td></tr><tr><th scope="row">угольный</th><td>4</td></tr><tr><th scope="row">желтоватый</th><td>4</td></tr><tr><th scope="row">голубоватый</th><td>4</td></tr><tr><th scope="row">лиловый</th><td>4</td></tr><tr><th scope="row">ржавый</th><td>3</td></tr><tr><th scope="row">васильковый</th><td>3</td></tr><tr><th scope="row">палевый</th><td>3</td></tr><tr><th scope="row">кофейный</th><td>3</td></tr><tr><th scope="row">каштановый</th><td>3</td></tr><tr><th scope="row">пегий</th><td>3</td></tr><tr><th scope="row">телесный</th><td>3</td></tr><tr><th scope="row">лазоревый</th><td>3</td></tr><tr><th scope="row">малиновый</th><td>3</td></tr><tr><th scope="row">золотистый</th><td>3</td></tr><tr><th scope="row">беленький</th><td>3</td></tr><tr><th scope="row">смоляной</th><td>2</td></tr><tr><th scope="row">стальной</th><td>2</td></tr><tr><th scope="row">серенький</th><td>2</td></tr><tr><th scope="row">вишневый</th><td>2</td></tr><tr><th scope="row">сиреневый</th><td>2</td></tr><tr><th scope="row">бурый</th><td>2</td></tr><tr><th scope="row">дымчатый</th><td>2</td></tr><tr><th scope="row">изумрудный</th><td>2</td></tr><tr><th scope="row">розоватый</th><td>2</td></tr><tr><th scope="row">белесый</th><td>2</td></tr><tr><th scope="row">серебристый</th><td>2</td></tr><tr><th scope="row">янтарный</th><td>2</td></tr><tr><th scope="row">сливочный</th><td>1</td></tr><tr><th scope="row">алый</th><td>1</td></tr><tr><th scope="row">пунцовый</th><td>1</td></tr><tr><th scope="row">соломенный</th><td>1</td></tr><tr><th scope="row">багровый</th><td>1</td></tr><tr><th scope="row">фисташковый</th><td>1</td></tr><tr><th scope="row">красноватый</th><td>1</td></tr><tr><th scope="row">охряный</th><td>1</td></tr><tr><th scope="row">шоколадный</th><td>1</td></tr><tr><th scope="row">аметистовый</th><td>1</td></tr><tr><th scope="row">песочный</th><td>1</td></tr><tr><th scope="row">ультрамариновый</th><td>1</td></tr><tr><th scope="row">винный</th><td>1</td></tr><tr><th scope="row">пурпурный</th><td>1</td></tr><tr><th scope="row">лиловатый</th><td>1</td></tr><tr><th scope="row">лимонный</th><td>1</td></tr><tr><th scope="row">абрикосовый</th><td>1</td></tr><tr><th scope="row">гранатовый</th><td>1</td></tr><tr><th scope="row">зеленоватый</th><td>1</td></tr><tr><th scope="row">медовый</th><td>1</td></tr></table></div>
+    </div>
+    <script type="application/json" id="pal-data">[{"n": "черный", "c": "#111111", "k": 98, "kn": "98", "ku": "упоминаний", "pn": "17,883"}, {"n": "белый", "c": "#ffffff", "k": 60, "kn": "60", "ku": "упоминаний", "pn": "10,949"}, {"n": "красный", "c": "#b3261e", "k": 36, "kn": "36", "ku": "упоминаний", "pn": "6,569"}, {"n": "желтый", "c": "#e3b505", "k": 26, "kn": "26", "ku": "упоминаний", "pn": "4,745"}, {"n": "зеленый", "c": "#2f6b3a", "k": 26, "kn": "26", "ku": "упоминаний", "pn": "4,745"}, {"n": "синий", "c": "#1f3c88", "k": 23, "kn": "23", "ku": "упоминания", "pn": "4,197"}, {"n": "розовый", "c": "#e3a1b4", "k": 23, "kn": "23", "ku": "упоминания", "pn": "4,197"}, {"n": "серый", "c": "#8c8c8c", "k": 22, "kn": "22", "ku": "упоминания", "pn": "4,015"}, {"n": "золотой", "c": "#c9a227", "k": 21, "kn": "21", "ku": "упоминание", "pn": "3,832"}, {"n": "голубой", "c": "#7fb2dc", "k": 15, "kn": "15", "ku": "упоминаний", "pn": "2,737"}, {"n": "коричневый", "c": "#6b4226", "k": 11, "kn": "11", "ku": "упоминаний", "pn": "2,007"}, {"n": "оранжевый", "c": "#d9731a", "k": 10, "kn": "10", "ku": "упоминаний", "pn": "1,825"}, {"n": "серебряный", "c": "#b8b8b8", "k": 9, "kn": "9", "ku": "упоминаний", "pn": "1,642"}, {"n": "бронзовый", "c": "#9c6a33", "k": 7, "kn": "7", "ku": "упоминаний", "pn": "1,277"}, {"n": "синеватый", "c": "#4f6fa8", "k": 6, "kn": "6", "ku": "упоминаний", "pn": "1,095"}, {"n": "рыжий", "c": "#c0541f", "k": 6, "kn": "6", "ku": "упоминаний", "pn": "1,095"}, {"n": "табачный", "c": "#7a5a33", "k": 5, "kn": "5", "ku": "упоминаний", "pn": "0,912"}, {"n": "кирпичный", "c": "#a5482c", "k": 5, "kn": "5", "ku": "упоминаний", "pn": "0,912"}, {"n": "сизый", "c": "#7d8a9a", "k": 5, "kn": "5", "ku": "упоминаний", "pn": "0,912"}, {"n": "лазурный", "c": "#2f7fbf", "k": 5, "kn": "5", "ku": "упоминаний", "pn": "0,912"}, {"n": "медный", "c": "#b0662f", "k": 5, "kn": "5", "ku": "упоминаний", "pn": "0,912"}, {"n": "фиолетовый", "c": "#5b3a8c", "k": 5, "kn": "5", "ku": "упоминаний", "pn": "0,912"}, {"n": "бирюзовый", "c": "#3aa6a0", "k": 5, "kn": "5", "ku": "упоминаний", "pn": "0,912"}, {"n": "рыжеватый", "c": "#c87a45", "k": 5, "kn": "5", "ku": "упоминаний", "pn": "0,912"}, {"n": "перламутровый", "c": "#e9e4dc", "k": 4, "kn": "4", "ku": "упоминания", "pn": "0,730"}, {"n": "молочный", "c": "#f2eee3", "k": 4, "kn": "4", "ku": "упоминания", "pn": "0,730"}, {"n": "вороной", "c": "#141414", "k": 4, "kn": "4", "ku": "упоминания", "pn": "0,730"}, {"n": "пепельный", "c": "#a8a39d", "k": 4, "kn": "4", "ku": "упоминания", "pn": "0,730"}, {"n": "угольный", "c": "#222222", "k": 4, "kn": "4", "ku": "упоминания", "pn": "0,730"}, {"n": "желтоватый", "c": "#e6cc6a", "k": 4, "kn": "4", "ku": "упоминания", "pn": "0,730"}, {"n": "голубоватый", "c": "#9cc2e2", "k": 4, "kn": "4", "ku": "упоминания", "pn": "0,730"}, {"n": "лиловый", "c": "#8e6aa8", "k": 4, "kn": "4", "ku": "упоминания", "pn": "0,730"}, {"n": "ржавый", "c": "#a2471b", "k": 3, "kn": "3", "ku": "упоминания", "pn": "0,547"}, {"n": "васильковый", "c": "#4a6fd1", "k": 3, "kn": "3", "ku": "упоминания", "pn": "0,547"}, {"n": "палевый", "c": "#e8d9b5", "k": 3, "kn": "3", "ku": "упоминания", "pn": "0,547"}, {"n": "кофейный", "c": "#6f4e37", "k": 3, "kn": "3", "ku": "упоминания", "pn": "0,547"}, {"n": "каштановый", "c": "#6b3a22", "k": 3, "kn": "3", "ku": "упоминания", "pn": "0,547"}, {"n": "пегий", "c": "#8a7f72", "k": 3, "kn": "3", "ku": "упоминания", "pn": "0,547"}, {"n": "телесный", "c": "#e6c3a8", "k": 3, "kn": "3", "ku": "упоминания", "pn": "0,547"}, {"n": "лазоревый", "c": "#3d7fc4", "k": 3, "kn": "3", "ku": "упоминания", "pn": "0,547"}, {"n": "малиновый", "c": "#a61d4a", "k": 3, "kn": "3", "ku": "упоминания", "pn": "0,547"}, {"n": "золотистый", "c": "#d4af37", "k": 3, "kn": "3", "ku": "упоминания", "pn": "0,547"}, {"n": "беленький", "c": "#ffffff", "k": 3, "kn": "3", "ku": "упоминания", "pn": "0,547"}, {"n": "смоляной", "c": "#1c1a17", "k": 2, "kn": "2", "ku": "упоминания", "pn": "0,365"}, {"n": "стальной", "c": "#7a8590", "k": 2, "kn": "2", "ku": "упоминания", "pn": "0,365"}, {"n": "серенький", "c": "#8c8c8c", "k": 2, "kn": "2", "ku": "упоминания", "pn": "0,365"}, {"n": "вишневый", "c": "#6e1423", "k": 2, "kn": "2", "ku": "упоминания", "pn": "0,365"}, {"n": "сиреневый", "c": "#b7a0d4", "k": 2, "kn": "2", "ku": "упоминания", "pn": "0,365"}, {"n": "бурый", "c": "#6f4e37", "k": 2, "kn": "2", "ku": "упоминания", "pn": "0,365"}, {"n": "дымчатый", "c": "#9a9a9a", "k": 2, "kn": "2", "ku": "упоминания", "pn": "0,365"}, {"n": "изумрудный", "c": "#1f7a52", "k": 2, "kn": "2", "ku": "упоминания", "pn": "0,365"}, {"n": "розоватый", "c": "#e9b8c4", "k": 2, "kn": "2", "ku": "упоминания", "pn": "0,365"}, {"n": "белесый", "c": "#eeeeea", "k": 2, "kn": "2", "ku": "упоминания", "pn": "0,365"}, {"n": "серебристый", "c": "#c4c4c4", "k": 2, "kn": "2", "ku": "упоминания", "pn": "0,365"}, {"n": "янтарный", "c": "#d9971b", "k": 2, "kn": "2", "ku": "упоминания", "pn": "0,365"}, {"n": "сливочный", "c": "#f1e5c8", "k": 1, "kn": "1", "ku": "упоминание", "pn": "0,182"}, {"n": "алый", "c": "#d11a2a", "k": 1, "kn": "1", "ku": "упоминание", "pn": "0,182"}, {"n": "пунцовый", "c": "#b0183a", "k": 1, "kn": "1", "ku": "упоминание", "pn": "0,182"}, {"n": "соломенный", "c": "#e4cf8c", "k": 1, "kn": "1", "ku": "упоминание", "pn": "0,182"}, {"n": "багровый", "c": "#7a1c1c", "k": 1, "kn": "1", "ku": "упоминание", "pn": "0,182"}, {"n": "фисташковый", "c": "#a8c47a", "k": 1, "kn": "1", "ku": "упоминание", "pn": "0,182"}, {"n": "красноватый", "c": "#c25a4e", "k": 1, "kn": "1", "ku": "упоминание", "pn": "0,182"}, {"n": "охряный", "c": "#c08a3e", "k": 1, "kn": "1", "ku": "упоминание", "pn": "0,182"}, {"n": "шоколадный", "c": "#4e2e1e", "k": 1, "kn": "1", "ku": "упоминание", "pn": "0,182"}, {"n": "аметистовый", "c": "#8c5fa8", "k": 1, "kn": "1", "ku": "упоминание", "pn": "0,182"}, {"n": "песочный", "c": "#d6c08f", "k": 1, "kn": "1", "ku": "упоминание", "pn": "0,182"}, {"n": "ультрамариновый", "c": "#2a3f9e", "k": 1, "kn": "1", "ku": "упоминание", "pn": "0,182"}, {"n": "винный", "c": "#722f37", "k": 1, "kn": "1", "ku": "упоминание", "pn": "0,182"}, {"n": "пурпурный", "c": "#7d1f5c", "k": 1, "kn": "1", "ku": "упоминание", "pn": "0,182"}, {"n": "лиловатый", "c": "#a48bbd", "k": 1, "kn": "1", "ku": "упоминание", "pn": "0,182"}, {"n": "лимонный", "c": "#e8d33f", "k": 1, "kn": "1", "ku": "упоминание", "pn": "0,182"}, {"n": "абрикосовый", "c": "#f2a65a", "k": 1, "kn": "1", "ku": "упоминание", "pn": "0,182"}, {"n": "гранатовый", "c": "#7b1e2a", "k": 1, "kn": "1", "ku": "упоминание", "pn": "0,182"}, {"n": "зеленоватый", "c": "#6f9a6a", "k": 1, "kn": "1", "ku": "упоминание", "pn": "0,182"}, {"n": "медовый", "c": "#c98a2b", "k": 1, "kn": "1", "ku": "упоминание", "pn": "0,182"}]</script>
+  </section>
+
+</main>
+<script>
+(() => {
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const clamp = (x, a, b) => Math.min(b, Math.max(a, x));
+  // как fmt_int/fmt_dec в сборке: разряды тонким пробелом только с пяти знаков (4539, но 103 328)
+  const fmt = (x, d) => {
+    const [i, f] = x.toFixed(d).split('.');
+    return (Math.abs(+i) >= 10000 ? i.replace(/\B(?=(\d{3})+(?!\d))/g, ' ') : i) + (f ? ',' + f : '');
+  };
+
+  // счётчики: от нуля до числа, которое уже стоит в разметке
+  const countUp = el => {
+    if (reduce || el.dataset.done) return;
+    el.dataset.done = 1;
+    const target = parseFloat(el.dataset.value), d = +(el.dataset.decimals || 0), final = el.textContent;
+    const dur = 1100 + Math.min(900, Math.log10(Math.abs(target) + 1) * 160), t0 = performance.now();
+    const step = t => {
+      const k = Math.min(1, (t - t0) / dur), e = 1 - Math.pow(1 - k, 4);
+      el.textContent = k < 1 ? fmt(target * e, d) : final;
+      if (k < 1) requestAnimationFrame(step);
+    };
+    el.textContent = fmt(0, d);
+    requestAnimationFrame(step);
+  };
+  const show = el => { el.classList.add('is-in'); el.querySelectorAll('.num').forEach(countUp); };
+  const io = new IntersectionObserver(entries => entries.forEach(e => {
+    if (e.isIntersecting) { show(e.target); io.unobserve(e.target); }
+  }), { threshold: .12 });
+  const observe = el => reduce ? el.classList.add('is-in') : io.observe(el);
+  document.querySelectorAll('.reveal').forEach(observe);
+  requestAnimationFrame(() => show(document.querySelector('.hero')));
+
+  // заголовок — во всю ширину своей колонки
+  const title = document.querySelector('.title');
+  const fitTitle = () => {
+    title.style.fontSize = '';
+    const fs = parseFloat(getComputedStyle(title).fontSize);
+    const widest = Math.max(...[...title.querySelectorAll('.ink')].map(s => s.offsetWidth));
+    if (widest > 0) title.style.fontSize = Math.min(fs * title.clientWidth / widest * .995, 320) + 'px';
+  };
+
+  // ---------- овал ----------
+  // Крупный овал почти на весь экран: слово (или самая широкая его часть) — ≈92% ширины, высота овала —
+  // не больше 85% высоты окна. Строки идут по эллипсу (ширина : высота = RATIO, а если слово разбито
+  // на части — RATIO_SPLIT, вытянутый по вертикали) и выравниваются только межсловным пробелом
+  // (−30%…+200%), без разрядки; где этого мало, слово переносится по слогам (атомы .at из сборки).
+  const RATIO = 1.6, RATIO_SPLIT = 0.8, FS_MIN = 13, LEAD = 1.2, HY_PEN = 400;
+  const FADE_X = 1.15;   // горизонтальная полуось маски затухания к полуоси овала: концы строк гаснут мягче, чем верх и низ
+  const oval = document.querySelector('.oval');
+  const original = [...oval.childNodes];
+  const ows = [...oval.querySelectorAll('.ow')];
+  const wordChunk = oval.querySelector('.ow.w');
+  const wi = ows.indexOf(wordChunk);
+  const wrapAtoms = new Map(ows.filter(w => w !== wordChunk).map(w => [w, [...w.children]]));
+  const upA = ows.slice(0, wi).flatMap(w => wrapAtoms.get(w));
+  const downA = ows.slice(wi + 1).flatMap(w => wrapAtoms.get(w));
+  const lwEl = wordChunk.querySelector('.lw'), wordText = lwEl.textContent;
+  const pre = wordChunk.querySelector('.pp:first-child'), post = wordChunk.querySelector('.lw ~ .pp');
+  const sOf = a => +(a.dataset.s || 0);           // 1 — пробел перед атомом, 2 — пробел без права разрыва, 0 — внутри слова
+  const rest = document.createElement('span'); rest.className = 'rest';
+  const measure = document.createElement('span'); measure.className = 'measure';
+  const span = (t, c) => { const s = document.createElement('span'); s.textContent = t; if (c) s.className = c; return s; };
+  const widthsOf = nodes => {
+    measure.replaceChildren(...nodes.map(n => { const c = n.cloneNode(true); c.style.display = 'inline-block'; return c; }));
+    return [...measure.children].map(c => c.getBoundingClientRect().width);
+  };
+  const restoreOriginal = () => {
+    wrapAtoms.forEach((ats, w) => w.replaceChildren(...ats));
+    oval.replaceChildren(...original);
+  };
+
+  // метрики строки из атомов A[i..j): пробелы внутри, перенос в конце, нужный межсловный пробел
+  const lineMetrics = (A, pre_, t, i, j, sp, hyW) => {
+    let gaps = 0;
+    for (let q = i + 1; q < j; q++) if (sOf(A[q])) gaps++;
+    const broken = j < A.length && sOf(A[j]) === 0;
+    const hy = broken && A[j].dataset.e !== '1';
+    const nat = pre_[j] - pre_[i] + gaps * sp + (hy ? hyW : 0);
+    const s = gaps ? clamp((t - nat) / gaps, -.3 * sp, 2 * sp) : 0;
+    return { gaps, broken, hy, s, dev: t - nat - gaps * s };
+  };
+  const lineCost = m => (m.dev < -1 ? 1e6 : 0) + m.dev * m.dev + .3 * m.gaps * m.s * m.s + (m.broken ? HY_PEN : 0);
+  const prefix = ws => { const p = [0]; ws.forEach(w => p.push(p[p.length - 1] + w)); return p; };
+
+  // нижняя половина: начало закреплено (сразу после слова), строки сверху вниз
+  const fillDown = (targets, A, ws, sp, hyW) => {
+    const K = targets.length, n = A.length, pre_ = prefix(ws);
+    const dp = Array.from({ length: K + 1 }, () => new Array(n + 1).fill(Infinity));
+    const from = Array.from({ length: K + 1 }, () => new Array(n + 1).fill(-1));
+    dp[0][0] = 0;
+    for (let k = 0; k < K; k++) for (let i = 0; i <= n; i++) {
+      if (dp[k][i] === Infinity) continue;
+      if (i === n) { const c = dp[k][i] + targets[k] ** 2; if (c < dp[k + 1][n]) { dp[k + 1][n] = c; from[k + 1][n] = n; } continue; }
+      for (let j = i + 1; j <= Math.min(n, i + 80); j++) {
+        if (j < n && sOf(A[j]) === 2) continue;                 // тире не отрываем от предыдущего слова
+        const m = lineMetrics(A, pre_, targets[k], i, j, sp, hyW);
+        const c = dp[k][i] + lineCost(m);
+        if (c < dp[k + 1][j]) { dp[k + 1][j] = c; from[k + 1][j] = i; }
+        if (m.dev < -1) break;
+      }
+    }
+    let end = 0;
+    for (let j = 0; j <= n; j++) if (dp[K][j] < dp[K][end]) end = j;
+    const out = new Array(K);
+    for (let k = K, j = end; k > 0; k--) {
+      const i = from[k][j];
+      out[k - 1] = { i, j, m: i < j ? lineMetrics(A, pre_, targets[k - 1], i, j, sp, hyW) : null };
+      j = i;
+    }
+    return { lines: out, used: [0, end] };
+  };
+  // верхняя половина: конец закреплён (прямо перед словом), строки снизу вверх; верхняя строка
+  // начинается только с начала слова (не с середины и не с тире)
+  const fillUp = (targets, A, ws, sp, hyW) => {
+    const K = targets.length, n = A.length, pre_ = prefix(ws);
+    const dp = Array.from({ length: K + 1 }, () => new Array(n + 1).fill(Infinity));
+    const from = Array.from({ length: K + 1 }, () => new Array(n + 1).fill(-1));
+    dp[0][n] = 0;
+    for (let k = 0; k < K; k++) for (let p = n; p >= 0; p--) {
+      if (dp[k][p] === Infinity) continue;
+      if (p === 0) { const c = dp[k][0] + targets[k] ** 2; if (c < dp[k + 1][0]) { dp[k + 1][0] = c; from[k + 1][0] = 0; } continue; }
+      for (let q = p - 1; q >= Math.max(0, p - 80); q--) {
+        if (q > 0 && sOf(A[q]) === 2) continue;                 // строка не начинается с тире
+        const m = lineMetrics(A, pre_, targets[k], q, p, sp, hyW);
+        const c = dp[k][p] + lineCost(m);
+        if (c < dp[k + 1][q]) { dp[k + 1][q] = c; from[k + 1][q] = p; }
+        if (m.dev < -1) break;
+      }
+    }
+    let start = -1;
+    for (let p = 0; p <= n; p++) {
+      if (dp[K][p] === Infinity || (p > 0 && p < n && sOf(A[p]) !== 1)) continue;
+      if (start < 0 || dp[K][p] < dp[K][start]) start = p;
+    }
+    const out = new Array(K);
+    for (let k = K, q = start; k > 0; k--) {
+      const p = from[k][q];
+      out[k - 1] = { i: q, j: p, m: q < p ? lineMetrics(A, pre_, targets[k - 1], q, p, sp, hyW) : null };
+      q = p;
+    }
+    return { lines: out, used: [start, n] };
+  };
+  const renderLine = (A, ln, k, t) => {
+    const l = document.createElement('span');
+    l.className = 'ol';
+    l.dataset.t = t.toFixed(1);
+    l.style.setProperty('--k', k);
+    if (ln.m && ln.m.s) l.style.wordSpacing = ln.m.s.toFixed(2) + 'px';
+    for (let q = ln.i; q < ln.j; q++) { if (q > ln.i && sOf(A[q])) l.append(' '); l.append(A[q]); }
+    if (ln.m && ln.m.hy) l.append(span('-', 'hy'));
+    if (ln.i === ln.j) l.append(' ');   // текст кончился — пустая строка держит высоту и центр
+    return l;
+  };
+
+  const layoutOval = () => {
+    restoreOriginal();
+    oval.classList.add('laid');
+    oval.style.fontSize = oval.style.lineHeight = '';
+    oval.append(rest, measure);
+    const W = oval.clientWidth, fs0 = parseFloat(getComputedStyle(oval).fontSize);
+    const ww0 = widthsOf([lwEl])[0];
+    if (!(W > 0 && ww0 > 0)) { oval.classList.remove('laid'); restoreOriginal(); return false; }
+    const perPx = ww0 / fs0;
+    // кегль: самая широкая средняя строка ≈92% ячейки, а высота овала — сколько остаётся от окна
+    // за вычетом подзаголовка, подписи и отступов этажа (весь этаж — в один экран, но не меньше
+    // половины окна); не влезает при FS_MIN — слово делится на m частей, и овал вытянут по вертикали
+    // (высота овала по строкам ≤ ширина/R + одна строка — это и учитываем)
+    const floor = oval.closest('section');
+    const room = Math.max(.5 * innerHeight, innerHeight - (floor.offsetHeight - oval.offsetHeight) - 4);
+    let m = 1, fs = 0, R = RATIO;
+    for (; m <= 6; m++) {
+      R = m === 1 ? RATIO : RATIO_SPLIT;
+      fs = Math.min(.92 * W * m / perPx, room / (perPx / (m * R) + LEAD));
+      if (fs >= FS_MIN) break;
+    }
+    m = Math.min(m, 6);
+    fs = Math.max(fs, FS_MIN);
+    const lh = fs * LEAD;
+    oval.style.fontSize = fs + 'px';
+    oval.style.lineHeight = lh + 'px';
+
+    // центр: слово целиком или m частей с дефисом. Знаки при слове и дефис в центровку не входят:
+    // их ширину уравновешивает отступ с другой стороны, по центру стоят только буквы слова
+    const box = document.createElement('span');
+    box.className = 'midbox';
+    const [preW, postW, hyW] = widthsOf([pre || span(''), post || span(''), span('-')]);
+    const midLine = (items, lead, trail) => {
+      const l = document.createElement('span');
+      l.className = 'ol mid';
+      l.style.setProperty('--k', 0);
+      l.style.paddingLeft = Math.max(0, trail - lead) + 'px';
+      l.style.paddingRight = Math.max(0, lead - trail) + 'px';
+      items.forEach(it => l.append(it));
+      box.append(l);
+    };
+    if (m === 1) {
+      midLine([wordChunk], preW, postW);
+    } else {
+      const L = wordText.length;
+      for (let p = 0; p < m; p++) {
+        const items = [];
+        if (p === 0 && pre) items.push(pre.cloneNode(true));
+        items.push(span(wordText.slice(Math.round(L * p / m), Math.round(L * (p + 1) / m)), 'lw'));
+        if (p < m - 1) items.push(span('-', 'hy lwhy'));
+        if (p === m - 1 && post) items.push(post.cloneNode(true));
+        midLine(items, p === 0 ? preW : 0, p < m - 1 ? hyW : postW);
+      }
+    }
+    measure.replaceChildren(...[...box.children].map(l => { const c = l.cloneNode(true); c.style.display = 'inline-block'; c.style.padding = '0'; return c; }));
+    const a = Math.max(...[...measure.children].map(c => c.getBoundingClientRect().width)) / 2, b = a / R;
+    const targets = [];
+    for (let k = 1; k < 200; k++) {
+      const y = m * lh / 2 + (k - .5) * lh;
+      if (!(y < b)) break;
+      const w = 2 * a * Math.sqrt(1 - (y / b) ** 2);
+      if (!(w >= 2.2 * fs)) break;
+      targets.push(w);
+    }
+    const [w2, w1] = widthsOf([span('а а'), span('аа')]);
+    const sp = w2 - w1;
+    const up = fillUp(targets, upA, widthsOf(upA), sp, hyW);
+    const down = fillDown(targets, downA, widthsOf(downA), sp, hyW);
+    const lines = [];
+    up.lines.forEach((ln, k) => lines.unshift(renderLine(upA, ln, k + 1, targets[k])));
+    lines.push(box);
+    down.lines.forEach((ln, k) => lines.push(renderLine(downA, ln, k + 1, targets[k])));
+    rest.replaceChildren(...upA.slice(0, up.used[0]), ...downA.slice(down.used[1]));
+    oval.replaceChildren(...lines, rest, measure);
+    // затухание: эллипс маски — с центром в середине слова и полуосями овала (a — по самой широкой
+    // строке слова, b = a / R) плюс полстроки сверху и снизу; строки слова (.mid) не гаснут
+    const cy = box.getBoundingClientRect().top + box.offsetHeight / 2;
+    oval.style.setProperty('--rx', (a * FADE_X).toFixed(1) + 'px');
+    oval.style.setProperty('--ry', (b + lh / 2).toFixed(1) + 'px');
+    lines.forEach(l => { if (l !== box) l.style.setProperty('--cy', (cy - l.getBoundingClientRect().top).toFixed(1) + 'px'); });
+    return true;
+  };
+
+  // ---------- самое длинное предложение: прогресс по прокрутке — только по словам рекорда ----------
+  // Линия чтения — LINE высоты окна от верха (READ_LINE в сборке, сейчас 30%): слово чернеет, когда
+  // поднимается выше неё, то есть закрашивание начинается, когда до верха экрана остаётся 30%.
+  // На высоком экране конец ниже, иначе страница кончится раньше и счётчик не дойдёт до конца.
+  const text = document.querySelector('.ls-text');
+  const LINE = +text.dataset.line;
+  const ws = [...text.querySelectorAll('.w')];
+  const bar = document.querySelector('.progress i'), counter = document.querySelector('.counter b');
+  const total = +ws[ws.length - 1].dataset.n;
+  let shown = -1;
+  const update = () => {
+    const H = innerHeight;
+    const top = ws[0].getBoundingClientRect().top, bottom = ws[ws.length - 1].getBoundingClientRect().bottom;
+    const maxScroll = document.documentElement.scrollHeight - H;
+    const startLine = H * LINE, endLine = Math.max(H * LINE, bottom - (maxScroll - scrollY) + 2);
+    const p = clamp((startLine - top) / Math.max(1, bottom - top + startLine - endLine), 0, 1);
+    const n = reduce ? ws.length : Math.round((p || 0) * ws.length);
+    if (n === shown) return;
+    shown = n;
+    ws.forEach((w, i) => w.classList.toggle('on', i < n));
+    const read = n ? +ws[n - 1].dataset.n : 0;
+    counter.textContent = read;
+    bar.style.width = read / total * 100 + '%';
+  };
+
+  // знаки препинания: наведение подсвечивает знаки в предложении, щелчок закрепляет
+  const rows = [...document.querySelectorAll('.punct tr[data-k]')];
+  let pinned = null;
+  const highlight = k => {
+    text.querySelectorAll('.pm').forEach(m => m.classList.toggle('hit', m.dataset.k === k));
+    text.classList.toggle('hl', !!k);
+    rows.forEach(r => r.classList.toggle('on', r.dataset.k === k));
+  };
+  rows.forEach(r => {
+    r.addEventListener('mouseenter', () => highlight(r.dataset.k));
+    r.addEventListener('mouseleave', () => highlight(pinned));
+    r.addEventListener('click', () => {
+      pinned = pinned === r.dataset.k ? null : r.dataset.k;
+      rows.forEach(x => x.classList.toggle('pin', x.dataset.k === pinned));
+      highlight(pinned);
+    });
+  });
+
+  // гистограммы: одна подсказка на график, столбик — по координате курсора (столбики тоньше пальца)
+  // если у графика есть связь (data-link) — столбик длины x подсвечивает строку примеров data-x и обратно
+  document.querySelectorAll('.hist .plot').forEach(plot => {
+    const cols = [...plot.querySelectorAll('.cols i')], tip = plot.querySelector('.tip');
+    const rows = plot.dataset.link ? [...document.querySelectorAll(`.examples[data-link="${plot.dataset.link}"] tr[data-x]`)] : [];
+    const at = x => { const r = plot.getBoundingClientRect(); return clamp(Math.floor((x - r.left) / r.width * cols.length), 0, cols.length - 1); };
+    const dense = () => plot.classList.toggle('dense', plot.clientWidth / cols.length < 3);
+    dense();
+    addEventListener('resize', dense);
+    const pick = i => {
+      cols.forEach((c, j) => c.classList.toggle('on', j === i));
+      rows.forEach(r => r.classList.toggle('on', r.dataset.x === cols[i].dataset.x));
+      plot.classList.add('act');
+      // первая строка — число; вторая — пример (data-e). Пример шире окна (63 буквы на телефоне)
+      // опускаем: слово и так подсвечено в таблице примеров, а переносить его нельзя
+      tip.textContent = cols[i].dataset.t;
+      if (cols[i].dataset.e) {
+        const e = document.createElement('span');
+        e.className = 'tip-e';
+        e.textContent = cols[i].dataset.e;
+        tip.append(e);
+      }
+      // подсказка не заходит за боковые линейки: держим её внутри этажа, с полем M
+      const x = (i + .5) / cols.length * 100, M = 8, box = plot.closest('.floor').getBoundingClientRect();
+      const lo = Math.max(box.left, 0) + M, hi = Math.min(box.right, innerWidth) - M;
+      tip.style.left = x + '%';
+      tip.hidden = false;
+      if (tip.lastChild.className === 'tip-e' && tip.offsetWidth > hi - lo) tip.lastChild.remove();
+      const r = tip.getBoundingClientRect();
+      const shift = r.left < lo ? lo - r.left : r.right > hi ? hi - r.right : 0;
+      if (shift) tip.style.left = `calc(${x}% + ${shift}px)`;
+    };
+    const hide = () => { tip.hidden = true; plot.classList.remove('act'); cols.forEach(c => c.classList.remove('on')); rows.forEach(r => r.classList.remove('on')); };
+    plot.addEventListener('pointermove', e => pick(at(e.clientX)));
+    plot.addEventListener('pointerdown', e => pick(at(e.clientX)));
+    plot.addEventListener('pointerleave', hide);
+    rows.forEach(r => {
+      const i = cols.findIndex(c => c.dataset.x === r.dataset.x);
+      r.addEventListener('mouseenter', () => pick(i));
+      r.addEventListener('mouseleave', hide);
+    });
+  });
+
+  // ---------- палитра: точка — упоминание цвета, между точками — градиент ----------
+  // Раскладка детерминированная (сид): точки — голубой шум; цвета по кругу — светлые к центру,
+  // тёмные к краю, оттенок задаёт угол. У каждого цвета ровно столько точек, сколько упоминаний:
+  // распределение с ёмкостями («цены», как в диаграмме мощности, остаток — досдачей).
+  // Промежутки — сглаживание цветов точек ядром Гаусса в OKLab на грубой сетке, растянутой
+  // с интерполяцией. Курсор или палец расталкивает и тащит точки; пружина медленно возвращает их.
+  const pal = (() => {
+    const cv = document.querySelector('.pal-canvas'), src = document.getElementById('pal-data');
+    if (!cv || !src) return null;
+    const COLS = JSON.parse(src.textContent), KC = COLS.length;
+    const SEED = 7, SIGMA = .8, LIFT = .06, SPRING = 1.8, DAMP = 2.7, DRAG = 7, PUSH = 40;
+    const seeded = a => () => {
+      a = a + 0x6D2B79F5 | 0;
+      let t = Math.imul(a ^ a >>> 15, 1 | a);
+      t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+      return ((t ^ t >>> 14) >>> 0) / 4294967296;
+    };
+    // sRGB ↔ OKLab (Б. Оттоссон)
+    const toLin = c => (c /= 255) <= .04045 ? c / 12.92 : ((c + .055) / 1.055) ** 2.4;
+    const LUT = new Uint8ClampedArray(4097);
+    for (let i = 0; i <= 4096; i++) { const c = i / 4096; LUT[i] = Math.round(255 * (c <= .0031308 ? 12.92 * c : 1.055 * c ** (1 / 2.4) - .055)); }
+    const fromLin = c => LUT[c <= 0 ? 0 : c >= 1 ? 4096 : (c * 4096 + .5) | 0];
+    const LL = new Float32Array(KC), AA = new Float32Array(KC), BB = new Float32Array(KC);
+    COLS.forEach(({ c: h }, k) => {
+      const r = toLin(parseInt(h.slice(1, 3), 16)), g = toLin(parseInt(h.slice(3, 5), 16)), b = toLin(parseInt(h.slice(5, 7), 16));
+      const l = Math.cbrt(.4122214708 * r + .5363325363 * g + .0514459929 * b);
+      const m = Math.cbrt(.2119034982 * r + .6806995451 * g + .1073969566 * b);
+      const s = Math.cbrt(.0883024619 * r + .2817188376 * g + .6299787005 * b);
+      LL[k] = .2104542553 * l + .7936177850 * m - .0040720468 * s;
+      AA[k] = 1.9779984951 * l - 2.4285922050 * m + .4505937099 * s;
+      BB[k] = .0259040371 * l + .7827717662 * m - .8086757660 * s;
+    });
+    const ctx = cv.getContext('2d');
+    let W = 0, H = 0, N = 0, S = 0, RAD = 3, X, Y, HX, HY, VX, VY, CI, byColour;
+    let cell, gw, gh, img, off, offCtx, R, R2, EXP, bw, bh, head, next;
+
+    const layout = (w, h) => {
+      W = w; H = h; N = COLS.reduce((t, c) => t + c.k, 0); S = Math.sqrt(W * H / N);
+      const rnd = seeded(SEED);
+      // точки: случайные, затем расталкивание до ровного шага — голубой шум, ровно N штук
+      const px = new Float64Array(N), py = new Float64Array(N);
+      for (let i = 0; i < N; i++) { px[i] = rnd() * W; py[i] = rnd() * H; }
+      const r0 = .95 * S, m = .32 * S, gbw = Math.ceil(W / r0) + 1, gbh = Math.ceil(H / r0) + 1;
+      const hd = new Int32Array(gbw * gbh), nx = new Int32Array(N), sx = new Float64Array(N), sy = new Float64Array(N);
+      for (let it = 0; it < 30; it++) {
+        hd.fill(-1); sx.fill(0); sy.fill(0);
+        for (let i = 0; i < N; i++) { const b = Math.floor(px[i] / r0) + Math.floor(py[i] / r0) * gbw; nx[i] = hd[b]; hd[b] = i; }
+        for (let i = 0; i < N; i++) {
+          const gi = Math.floor(px[i] / r0), gj = Math.floor(py[i] / r0);
+          for (let v = Math.max(0, gj - 1); v <= Math.min(gbh - 1, gj + 1); v++) for (let u = Math.max(0, gi - 1); u <= Math.min(gbw - 1, gi + 1); u++) {
+            for (let j = hd[u + v * gbw]; j >= 0; j = nx[j]) {
+              if (j <= i) continue;
+              const ex = px[j] - px[i], ey = py[j] - py[i], d = Math.hypot(ex, ey);
+              if (d < r0 && d > 1e-9) { const f = (r0 - d) / d * .22; sx[i] -= ex * f; sy[i] -= ey * f; sx[j] += ex * f; sy[j] += ey * f; }
+            }
+          }
+        }
+        for (let i = 0; i < N; i++) { px[i] = clamp(px[i] + sx[i], m, W - m); py[i] = clamp(py[i] + sy[i], m, H - m); }
+      }
+      // цвета: ранг точки по эллиптическому радиусу (равные площади) против места цвета в ряду
+      // по светлоте; для цветных (не серых) — ещё угол против оттенка
+      const cx = W / 2, cy = H / 2, rho = new Float64Array(N), th = new Float64Array(N);
+      for (let i = 0; i < N; i++) {
+        const u = (px[i] - cx) / cx, v = (py[i] - cy) / cy;
+        rho[i] = Math.hypot(u, v) + (rnd() - .5) * .12;
+        th[i] = Math.atan2(v, u);
+      }
+      const rank = new Float64Array(N);
+      Array.from({ length: N }, (_, i) => i).sort((a, b) => rho[a] - rho[b]).forEach((i, q) => { rank[i] = (q + .5) / N; });
+      const rt = new Float64Array(KC), hue = new Float64Array(KC), wch = new Float64Array(KC);
+      let cum = 0;
+      COLS.map((_, k) => k).sort((a, b) => LL[b] - LL[a]).forEach(k => { rt[k] = (cum + COLS[k].k / 2) / N; cum += COLS[k].k; });
+      for (let k = 0; k < KC; k++) { hue[k] = -Math.atan2(BB[k], AA[k]); wch[k] = clamp((Math.hypot(AA[k], BB[k]) - .02) / .06, 0, 1); }
+      const ang = (a, b) => { const d = Math.abs(a - b) % (2 * Math.PI); return d > Math.PI ? 2 * Math.PI - d : d; };
+      const C = new Float64Array(N * KC);
+      let lo = Infinity, hi = -Infinity;
+      for (let i = 0; i < N; i++) for (let k = 0; k < KC; k++) {
+        const v = (rank[i] - rt[k]) ** 2 + wch[k] * .05 * (ang(th[i], hue[k]) / Math.PI) ** 2;
+        C[i * KC + k] = v; lo = Math.min(lo, v); hi = Math.max(hi, v);
+      }
+      for (let q = 0; q < C.length; q++) C[q] = (C[q] - lo) / (hi - lo || 1);
+      const price = new Float64Array(KC), cnt = new Int32Array(KC);
+      CI = new Int16Array(N);
+      let stepP = .004;
+      for (let it = 0; it < 600; it++) {
+        cnt.fill(0);
+        for (let i = 0; i < N; i++) {
+          let best = 0, bv = Infinity;
+          for (let k = 0; k < KC; k++) { const v = C[i * KC + k] - price[k]; if (v < bv) { bv = v; best = k; } }
+          CI[i] = best; cnt[best]++;
+        }
+        let miss = 0;
+        for (let k = 0; k < KC; k++) { price[k] += stepP * (COLS[k].k - cnt[k]); miss += Math.abs(COLS[k].k - cnt[k]); }
+        if (!miss) break;
+        stepP *= .996;
+      }
+      // досдача: из переполненного цвета — точку с наименьшей потерей в недобравший
+      for (;;) {
+        let bi = -1, bu = -1, bd = Infinity;
+        for (let i = 0; i < N; i++) {
+          const k = CI[i];
+          if (cnt[k] <= COLS[k].k) continue;
+          for (let u = 0; u < KC; u++) if (cnt[u] < COLS[u].k) { const d = C[i * KC + u] - C[i * KC + k]; if (d < bd) { bd = d; bi = i; bu = u; } }
+        }
+        if (bi < 0) break;
+        cnt[CI[bi]]--; cnt[bu]++; CI[bi] = bu;
+      }
+      byColour = Array.from({ length: KC }, () => []);
+      for (let i = 0; i < N; i++) byColour[CI[i]].push(i);
+      X = Float32Array.from(px); Y = Float32Array.from(py); HX = Float32Array.from(px); HY = Float32Array.from(py);
+      VX = new Float32Array(N); VY = new Float32Array(N);
+      // поле: грубая сетка (клетка — пятая часть шага точек), ядро — σ = SIGMA шага, обрезка на 2,6σ
+      cell = Math.max(3, S / 5); gw = Math.ceil(W / cell) + 1; gh = Math.ceil(H / cell) + 1;
+      img = new ImageData(gw, gh);
+      off = document.createElement('canvas'); off.width = gw; off.height = gh; offCtx = off.getContext('2d');
+      const sg = SIGMA * S;
+      R = 2.6 * sg; R2 = R * R;
+      EXP = new Float32Array(1025);
+      for (let q = 0; q <= 1024; q++) EXP[q] = Math.exp(-(q / 1024) * R2 / (2 * sg * sg));
+      bw = Math.ceil(W / R) + 1; bh = Math.ceil(H / R) + 1; head = new Int32Array(bw * bh); next = new Int32Array(N);
+      RAD = clamp(S * .085, 2, 4.5);
+      const dpr = Math.min(2, devicePixelRatio || 1);
+      cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    };
+
+    const draw = () => {
+      if (!N) return;
+      head.fill(-1);
+      for (let i = 0; i < N; i++) {
+        const b = clamp(Math.floor(X[i] / R), 0, bw - 1) + clamp(Math.floor(Y[i] / R), 0, bh - 1) * bw;
+        next[i] = head[b]; head[b] = i;
+      }
+      const D = img.data;
+      for (let gy = 0; gy < gh; gy++) for (let gx = 0; gx < gw; gx++) {
+        const qx = (gx + .5) * cell, qy = (gy + .5) * cell, bu = Math.floor(qx / R), bv = Math.floor(qy / R);
+        let ws = 0, L = 0, A = 0, B = 0, near = -1, nd = Infinity;
+        for (let v = Math.max(0, bv - 1); v <= Math.min(bh - 1, bv + 1); v++) for (let u = Math.max(0, bu - 1); u <= Math.min(bw - 1, bu + 1); u++) {
+          for (let i = head[u + v * bw]; i >= 0; i = next[i]) {
+            const ex = X[i] - qx, ey = Y[i] - qy, d2 = ex * ex + ey * ey;
+            if (d2 < nd) { nd = d2; near = i; }
+            if (d2 >= R2) continue;
+            const w = EXP[(d2 / R2 * 1024) | 0], k = CI[i];
+            ws += w; L += w * LL[k]; A += w * AA[k]; B += w * BB[k];
+          }
+        }
+        if (ws < 1e-6) {               // рядом пусто (точки растолкали) — цвет ближайшей точки
+          if (near < 0) for (let i = 0; i < N; i++) { const d2 = (X[i] - qx) ** 2 + (Y[i] - qy) ** 2; if (d2 < nd) { nd = d2; near = i; } }
+          const k = CI[near];
+          ws = 1; L = LL[k]; A = AA[k]; B = BB[k];
+        }
+        L = L / ws; A = A / ws * (1 - LIFT * .6); B = B / ws * (1 - LIFT * .6);
+        L += (1 - L) * LIFT;            // поле чуть светлее точек — точки читаются и внутри своего цвета
+        const l = (L + .3963377774 * A + .2158037573 * B) ** 3;
+        const mm = (L - .1055613458 * A - .0638541728 * B) ** 3;
+        const s = (L - .0894841775 * A - 1.2914855480 * B) ** 3;
+        const o = 4 * (gx + gy * gw);
+        D[o] = fromLin(4.0767416621 * l - 3.3077115913 * mm + .2309699292 * s);
+        D[o + 1] = fromLin(-1.2684380046 * l + 2.6097574011 * mm - .3413193965 * s);
+        D[o + 2] = fromLin(-.0041960863 * l - .7034186147 * mm + 1.7076147010 * s);
+        D[o + 3] = 255;
+      }
+      offCtx.putImageData(img, 0, 0);
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
+      ctx.drawImage(off, 0, 0, gw * cell, gh * cell);
+      // точки: своим цветом, волосяное кольцо контрастного тона
+      ctx.lineWidth = 1;
+      for (let k = 0; k < KC; k++) {
+        ctx.beginPath();
+        for (const i of byColour[k]) { ctx.moveTo(X[i] + RAD, Y[i]); ctx.arc(X[i], Y[i], RAD, 0, 2 * Math.PI); }
+        ctx.fillStyle = COLS[k].c;
+        ctx.fill();
+        ctx.strokeStyle = LL[k] > .72 ? 'rgba(0, 0, 0, .16)' : 'rgba(255, 255, 255, .22)';
+        ctx.stroke();
+      }
+    };
+
+    // движение: пружина к своему месту с вязкостью; у стенок — мягкий отскок
+    const step = dt => {
+      let moving = false;
+      for (let i = 0; i < N; i++) {
+        VX[i] += (SPRING * (HX[i] - X[i]) - DAMP * VX[i]) * dt;
+        VY[i] += (SPRING * (HY[i] - Y[i]) - DAMP * VY[i]) * dt;
+        X[i] += VX[i] * dt; Y[i] += VY[i] * dt;
+        if (X[i] < 0) { X[i] = 0; VX[i] *= -.4; } else if (X[i] > W) { X[i] = W; VX[i] *= -.4; }
+        if (Y[i] < 0) { Y[i] = 0; VY[i] *= -.4; } else if (Y[i] > H) { Y[i] = H; VY[i] *= -.4; }
+        if (!moving && (Math.abs(X[i] - HX[i]) > .25 || Math.abs(Y[i] - HY[i]) > .25 || Math.abs(VX[i]) + Math.abs(VY[i]) > .5)) moving = true;
+      }
+      return moving;
+    };
+    let raf = 0, last = 0, seen = true;
+    const frame = t => {
+      raf = 0;
+      const dt = clamp((t - last) / 1000, .001, 1 / 30);
+      last = t;
+      const moving = step(dt);
+      if (!moving) { X.set(HX); Y.set(HY); VX.fill(0); VY.fill(0); }
+      if (seen) draw();
+      if (moving) raf = requestAnimationFrame(frame);
+    };
+    const wake = () => { if (!raf) { last = performance.now(); raf = requestAnimationFrame(frame); } };
+    // холст за экраном не рисуем; вернулся в поле зрения — перерисовываем (точки могли успеть
+    // успокоиться, пока он был скрыт, иначе на нём остался бы последний сдвинутый кадр)
+    new IntersectionObserver(es => { seen = es[es.length - 1].isIntersecting; if (seen && N) draw(); }).observe(cv);
+    // курсор или палец: точки рядом расталкиваются и тянутся за движением (спад — квадрат от края)
+    const stir = (x, y, dx, dy) => {
+      const RP = Math.max(60, 2.6 * S), RP2 = RP * RP;
+      for (let i = 0; i < N; i++) {
+        const ex = X[i] - x, ey = Y[i] - y, d2 = ex * ex + ey * ey;
+        if (d2 >= RP2) continue;
+        const d = Math.sqrt(d2) || 1, f = (1 - d / RP) ** 2;
+        VX[i] += (dx * DRAG + ex / d * PUSH) * f;
+        VY[i] += (dy * DRAG + ey / d * PUSH) * f;
+      }
+      wake();
+    };
+
+    // подпись под палитрой: цвет ближайшей к курсору точки — название, упоминания, доля
+    const def = cv.parentNode.querySelector('.pal-def'), on = cv.parentNode.querySelector('.pal-on');
+    const sw = on.querySelector('.pal-sw'), nm = on.querySelector('.pal-n'), kk = on.querySelector('.pal-k'), pp = on.querySelector('.pal-p');
+    const nb = t => { const e = document.createElement('span'); e.className = 'nb'; e.textContent = t; return e; };
+    let shownC = -1;
+    const read = (x, y) => {
+      let best = -1, bd = Infinity;
+      for (let i = 0; i < N; i++) { const d = (X[i] - x) ** 2 + (Y[i] - y) ** 2; if (d < bd) { bd = d; best = i; } }
+      const k = best < 0 ? -1 : CI[best];
+      if (k === shownC) return;
+      shownC = k;
+      if (k < 0) return;
+      const col = COLS[k];
+      sw.style.setProperty('--c', col.c);
+      nm.textContent = col.n;
+      kk.replaceChildren(nb(col.kn), ' ' + col.ku);
+      pp.replaceChildren(nb(col.pn), ' %');
+      def.hidden = true; on.hidden = false;
+    };
+    const unread = () => { shownC = -1; on.hidden = true; def.hidden = false; };
+    let lx = null, ly = null;
+    const at = e => { const r = cv.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; };
+    cv.addEventListener('pointermove', e => {
+      if (!N) return;
+      const [x, y] = at(e);
+      if (lx !== null && !reduce) stir(x, y, clamp(x - lx, -60, 60), clamp(y - ly, -60, 60));
+      lx = x; ly = y;
+      read(x, y);
+    });
+    cv.addEventListener('pointerdown', e => { if (!N) return; [lx, ly] = at(e); read(lx, ly); });
+    cv.addEventListener('pointerleave', e => { lx = ly = null; if (e.pointerType === 'mouse') unread(); });   // с пальцем подпись остаётся
+    cv.addEventListener('pointercancel', () => { lx = ly = null; });                                          // палец ушёл в прокрутку страницы
+
+    // для проверки (qa_page.py): число точек каждого цвета, сдвиг точек, шаг движения без rAF
+    cv.__pal = {
+      counts: () => { const k = new Array(KC).fill(0); for (let i = 0; i < N; i++) k[CI[i]]++; return k; },
+      expected: () => COLS.map(c => c.k),
+      offset: () => { let mx = 0; for (let i = 0; i < N; i++) mx = Math.max(mx, Math.hypot(X[i] - HX[i], Y[i] - HY[i])); return mx; },
+      advance: sec => { for (let t = 0; t < sec; t += 1 / 60) step(1 / 60); draw(); },
+      size: () => [W, H, N],
+    };
+    return {
+      resize: () => {
+        const w = cv.clientWidth, h = cv.clientHeight;
+        if (!(w > 0 && h > 0)) return;                          // этаж скрыт — раскладка подождёт
+        if (N && Math.abs(w - W) < 1 && Math.abs(h - H) < 1) { draw(); return; }
+        layout(w, h);
+        draw();                                                 // первый кадр — сразу, без rAF
+      },
+    };
+  })();
+
+  let laidOnce = false;
+  const relayout = () => {
+    fitTitle();
+    if (layoutOval() && !laidOnce) { laidOnce = true; observe(oval); }
+    if (pal) pal.resize();
+    update();
+  };
+  let rt = 0, raf = 0;
+  addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(relayout, 120); });
+  addEventListener('scroll', () => { raf = raf || requestAnimationFrame(() => { raf = 0; update(); }); }, { passive: true });
+  (document.fonts ? document.fonts.ready : Promise.resolve()).then(relayout);
+  update();
+})();
+</script>
+</body>
+</html>
