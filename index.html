@@ -32,6 +32,7 @@
   body {
     margin: 0;
     padding: 12px;            /* поле — снаружи рамки и в целых пикселях: линейки ложатся ровно */
+    padding: round(nearest, clamp(12px, 1.6vw, 24px), 1px);   /* резиновое, без брейкпоинтов; без round() — 12px */
     background: var(--bg);
     color: var(--ink);
     font: 18px/1.5 var(--text);
@@ -39,7 +40,6 @@
     text-rendering: optimizeLegibility;
     -webkit-font-smoothing: antialiased;
   }
-  @media (min-width: 900px) { body { padding: 24px; } }
   ::selection { background: #000; color: #fff; }
   .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 
@@ -47,11 +47,12 @@
   .frame { margin: 0; padding: 0; border: 1px solid var(--line); }
   .floor { display: grid; grid-template-columns: minmax(0, 1fr); gap: 22px var(--gap); padding: var(--pad); }
   .floor + .floor { border-top: 1px solid var(--line); }
-  @media (min-width: 900px) {
-    .floor.two { grid-template-columns: minmax(0, 1fr) minmax(250px, 24%); }
-    .two > .text { grid-column: 1; grid-row: 1; }
-    .two > .data { grid-column: 2; grid-row: 1; }
-  }
+  /* «текст — данные» без брейкпоинтов: данные стоят справа, пока текст не уже 62% этажа, иначе
+     уходят под текст (flex-wrap: колонка данных — max(250px, 24%), текст забирает остальное) */
+  .floor.two { display: flex; flex-wrap: wrap; }
+  .two > .text { flex: 999 1 0; min-inline-size: 62%; }
+  .two > .data { flex: 1 1 max(250px, 24%); }
+  .two > .sign { flex-basis: 100%; }
   .wide, .sign { grid-column: 1 / -1; }
   .floor > * { min-width: 0; }   /* ячейка сжимается: широкое содержимое (таблица примеров) листается внутри себя */
 
@@ -87,9 +88,8 @@
 
   /* 1. заголовок, абзац-пояснение и сводка */
   .hero .text { align-self: end; }
-  .title { margin: 0; font: 400 19vw/.9 var(--display); }
+  .title { margin: 0; font: 400 clamp(56px, 13vw, 260px)/.9 var(--display); }   /* стартовый кегль; точно — fitTitle */
   .title .line { display: block; white-space: nowrap; }
-  @media (min-width: 900px) { .title { font-size: 12vw; } }
   .intro { margin: 26px 0 0; max-width: 34em; font: 400 clamp(18px, 1.4vw, 23px)/1.28 var(--text); }
   .tally { border-collapse: collapse; }
   .tally td { padding: 2px 0; vertical-align: baseline; }
@@ -132,12 +132,16 @@
   .punct tr[data-k]:hover, .punct tr.on { background: #f1f1f1; }
   .punct tr.pin { background: #000; }
   .punct tr.pin > * { color: #fff; }
-  @media (min-width: 900px) { .ls-floor .data-in { position: sticky; top: 16px; } }
+  .ls-floor .data-in { position: sticky; top: 16px; }   /* в одну колонку липнуть некуда — эффекта нет */
 
   /* полосы: подпись — полоса — число [— процент] */
   .bars + .bars { margin-top: 26px; }
-  .br { display: grid; grid-template-columns: minmax(120px, 32%) minmax(0, 1fr) auto; align-items: center; column-gap: 14px; padding: 4px 0; }
-  .br.p4 { grid-template-columns: minmax(120px, 32%) minmax(0, 1fr) 7.5ch 9ch; }
+  /* узко — полоса с числами уходит под подпись (flex-wrap, без брейкпоинтов): подпись не уже 15em */
+  .bars:not(.colorbars) > .br { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 14px; padding: 4px 0; }
+  .bars:not(.colorbars) > .br > .bl { flex: 1 1 32%; min-inline-size: min(100%, 15em); }
+  .bars:not(.colorbars) > .br > .bt { flex: 999 1 8em; }
+  .bars:not(.colorbars) > .br > .bn { flex: none; min-inline-size: 7.5ch; }
+  .bars:not(.colorbars) > .br > .bp { flex: none; min-inline-size: 9ch; }
   .bl { font: 400 14px/1.3 var(--sans); }
   .bl.cname { font: 400 20px/1.2 var(--text); }
   .bx { display: block; margin-top: 2px; max-width: 52ch; font: 400 12.5px/1.35 var(--sans); color: var(--muted); }   /* пояснение термина */
@@ -148,13 +152,9 @@
   .grid .gl b, .xax span, .examples td.ex-n, .counter, .nb { letter-spacing: -.02em; }   /* только числа: шапка «букв | раз» — текст */
   .bt { position: relative; height: 10px; }
   .bt i { position: absolute; left: 0; top: 0; bottom: 0; width: calc(var(--w) * 100%); min-width: 1px; background: var(--c, var(--ink)); border-radius: 0 2px 2px 0; transform-origin: left; }
-  .bt i.lt { box-shadow: inset 0 0 0 1px var(--ink); }   /* светлый цвет — волосяной контур, иначе полоса пропадёт на белом */
+  .bt i.lt { box-shadow: inset 0 0 0 .5px var(--ink); }   /* светлый цвет — волосяной контур (полпикселя), иначе полоса пропадёт на белом */
   .bn { font: 400 15px/1.3 var(--sans); font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
   .bp { font: 400 15px/1.3 var(--sans); font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; color: var(--muted); }
-  @media (max-width: 599.98px) {
-    .br, .br.p4 { grid-template-columns: minmax(0, 1fr) auto auto; row-gap: 4px; }
-    .br .bt { grid-column: 1 / -1; grid-row: 2; }
-  }
 
   /* гистограммы */
   .hist { margin: 0; }
@@ -202,7 +202,7 @@
   .examples.kwic-on { width: 100%; }
   .examples.kwic-on .ex-n, .examples.kwic-on .ex-c { width: 1%; }
   .examples.kwic-on td.ex-w { width: 100%; max-width: 0; }   /* ячейка — остаток ширины, содержимое её не распирает */
-  @media (min-width: 600px) { .examples.kwic-on .ex-w { padding-right: var(--nw, 0px); } }   /* симметрия: середина строки — середина формата */
+  .examples.kwic-on .ex-w { padding-right: clamp(0px, (100vw - 480px) * .4, var(--nw, 0px)); }   /* симметрия: середина строки — середина формата; узко отступ сходит на нет */
   .examples.kwic-on th.ex-w { text-align: center; }
   .examples.kwic-on .kwic { display: flex; align-items: baseline; }
   .examples.kwic-on .kw { flex: none; }
@@ -217,26 +217,50 @@
   .examples tr.on .ex-n, .examples tr.on .ex-c { color: var(--ink); }
 
   /* цвета */
+  /* цветовое разнообразие: один этаж, блоки с подзаголовками h3 — самый частый цвет, составной, частота, палитра */
+  .color-floor { row-gap: 46px; }
+  .color-floor > .sub-h { margin: 0; }
+  .cblock .head { margin-bottom: 14px; }
+  .cblock .head .sub-h3 { margin: 0; }
+  .cblock .figure { font-size: clamp(36px, 3.2vw, 56px); }   /* число при h3 — мельче, чем при h2 */
+  .cnote { display: flex; flex-wrap: wrap; gap: 4px 28px; margin: 24px 0 0; }   /* ниже хвоста «р» */
+  .cnote .pair2 { margin: 0; }
   .color-word { margin: 0; font: 400 clamp(64px, 9vw, 160px)/.95 var(--display); overflow-wrap: anywhere; }
   .color-word.big { font-weight: 800; font-size: clamp(64px, 19vw, 360px); line-height: .9; padding-bottom: .2em; color: var(--c, var(--ink)); }   /* запас под хвост «р» */
   .color-word.big.lt { -webkit-text-stroke: 1px var(--ink); }
   /* полосы цвета: у подписей своя колонка, у полос — своя (одна сетка на всю диаграмму, ровный левый край) */
-  @media (min-width: 600px) {
-    .colorbars { display: grid; grid-template-columns: max-content minmax(0, 1fr) auto; align-items: center; gap: 8px 14px; }
-    .colorbars .br { display: contents; }
+  .colorbars { display: grid; grid-template-columns: max-content minmax(0, 1fr) auto; align-items: center; gap: 8px 14px; }
+  .colorbars .br { display: contents; }
+  .colorbars .bt { height: 12px; }
+  /* стекло без прозрачности. Тёмные — матовое: свет рассеян — мягкий градиент сверху вниз, молочная
+     дымка, размытые светлый верх и тёмный низ, без бликов. Светлые — глянцевое: отражение под углом
+     160° (не по диагонали полосы) с резкой кромкой, яркий верхний край, свечение у нижнего */
+  .colorbars .bt i.mt {
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, .26) 0, rgba(255, 255, 255, .1) 45%, rgba(0, 0, 0, .05) 70%, rgba(0, 0, 0, .16) 100%),
+      linear-gradient(rgba(255, 255, 255, .08), rgba(255, 255, 255, .08)), var(--c);
+    box-shadow: inset 0 1.5px 2px rgba(255, 255, 255, .22), inset 0 -1.5px 2px rgba(0, 0, 0, .28), inset 0 0 0 .5px rgba(255, 255, 255, .12);
   }
-  .colorbars .bt { height: 24px; }
-  /* зерно поверх цвета: светлые и тёмные крапинки (шум feTurbulence) — фактура без фотографий */
-  .colorbars .bt i::after {
-    content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; opacity: .38;
-    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='l' x='0' y='0' color-interpolation-filters='sRGB'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' seed='4' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 4 0 0 0 -2.36'/%3E%3C/filter%3E%3Cfilter id='d' x='0' y='0' color-interpolation-filters='sRGB'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' seed='9' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -4 0 0 0 1.64'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23l)'/%3E%3Crect width='100%25' height='100%25' filter='url(%23d)'/%3E%3C/svg%3E") 0 0 / 140px 140px;
+  .colorbars .bt i.gl {
+    background:
+      linear-gradient(160deg, rgba(255, 255, 255, .62) 0, rgba(255, 255, 255, .4) 52%, rgba(255, 255, 255, .05) 55%, rgba(255, 255, 255, 0) 75%),
+      linear-gradient(180deg, rgba(255, 255, 255, .35) 0, rgba(255, 255, 255, 0) 45%),
+      linear-gradient(0deg, rgba(255, 255, 255, .4) 0, rgba(255, 255, 255, 0) 26%),
+      linear-gradient(180deg, rgba(0, 0, 0, 0) 45%, rgba(0, 0, 0, .12) 100%), var(--c);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, .95), inset 0 -1px 0 rgba(0, 0, 0, .08);
+  }
+  /* белый: блик на белом не виден — отражение даёт лёгкая тень за кромкой; контур — полпикселя */
+  .colorbars .bt i.gl.lt {
+    background:
+      linear-gradient(160deg, rgba(0, 0, 0, 0) 0, rgba(0, 0, 0, 0) 54%, rgba(0, 0, 0, .05) 56%, rgba(0, 0, 0, .03) 100%),
+      linear-gradient(180deg, rgba(0, 0, 0, 0) 45%, rgba(0, 0, 0, .07) 100%), var(--c);
+    box-shadow: inset 0 0 0 .5px var(--ink);
   }
 
   /* палитра: холст с точками и градиентом; без JS — полоса пропорций */
-  .pal-canvas { display: none; width: 100%; aspect-ratio: 2.2 / 1; max-height: calc(100vh - 210px); min-height: 260px; touch-action: pan-y; }
+  .pal-canvas { display: none; width: 100%; height: clamp(300px, 46vw, calc(100vh - 170px)); touch-action: pan-y; }   /* высота от ширины окна, без брейкпоинтов */
   .js .pal-canvas { display: block; }
   .js .pal-strip { display: none; }
-  @media (max-width: 599.98px) { .pal-canvas { aspect-ratio: 4 / 5; max-height: none; } }
   .pal-strip { display: flex; height: 56px; }
   .pal-strip i { flex: var(--k) 1 0; min-width: 1px; background: var(--c); }
   .pal-strip i.lt { box-shadow: inset 0 1px 0 var(--thin), inset 0 -1px 0 var(--thin); }
@@ -341,39 +365,37 @@
   </section>
 
   <section class="floor color-floor">
-    <div class="head">
-      <h2 class="sub-h">Самый частый цвет</h2>
-      <div class="head-num"><span class="figure"><span class="num" data-value="98">98</span></span><span class="unit">упоминаний</span></div>
-    </div>
-    <p class="color-word big" style="--c:#111111">черный</p>
-    <div class="reveal"><div class="bars colorbars"><div class="br"><span class="bl cname">черный</span><span class="bt"><i style="--w:1.00000;--c:#111111"></i></span><span class="bn"><span class="num" data-value="98">98</span></span></div><div class="br"><span class="bl cname">белый</span><span class="bt"><i class="lt" style="--w:0.61224;--c:#ffffff"></i></span><span class="bn"><span class="num" data-value="60">60</span></span></div><div class="br"><span class="bl cname">красный</span><span class="bt"><i style="--w:0.36735;--c:#b3261e"></i></span><span class="bn"><span class="num" data-value="36">36</span></span></div><div class="br"><span class="bl cname">желтый</span><span class="bt"><i style="--w:0.26531;--c:#e3b505"></i></span><span class="bn"><span class="num" data-value="26">26</span></span></div><div class="br"><span class="bl cname">зеленый</span><span class="bt"><i style="--w:0.26531;--c:#2f6b3a"></i></span><span class="bn"><span class="num" data-value="26">26</span></span></div><div class="br"><span class="bl cname">синий</span><span class="bt"><i style="--w:0.23469;--c:#1f3c88"></i></span><span class="bn"><span class="num" data-value="23">23</span></span></div><div class="br"><span class="bl cname">розовый</span><span class="bt"><i style="--w:0.23469;--c:#e3a1b4"></i></span><span class="bn"><span class="num" data-value="23">23</span></span></div><div class="br"><span class="bl cname">серый</span><span class="bt"><i style="--w:0.22449;--c:#8c8c8c"></i></span><span class="bn"><span class="num" data-value="22">22</span></span></div><div class="br"><span class="bl cname">золотой</span><span class="bt"><i style="--w:0.21429;--c:#c9a227"></i></span><span class="bn"><span class="num" data-value="21">21</span></span></div><div class="br"><span class="bl cname">голубой</span><span class="bt"><i style="--w:0.15306;--c:#7fb2dc"></i></span><span class="bn"><span class="num" data-value="15">15</span></span></div><div class="br"><span class="bl cname">коричневый</span><span class="bt"><i style="--w:0.11224;--c:#6b4226"></i></span><span class="bn"><span class="num" data-value="11">11</span></span></div><div class="br"><span class="bl cname">оранжевый</span><span class="bt"><i style="--w:0.10204;--c:#d9731a"></i></span><span class="bn"><span class="num" data-value="10">10</span></span></div><div class="br"><span class="bl cname">серебряный</span><span class="bt"><i style="--w:0.09184;--c:#b8b8b8"></i></span><span class="bn"><span class="num" data-value="9">9</span></span></div><div class="br"><span class="bl cname">бронзовый</span><span class="bt"><i style="--w:0.07143;--c:#9c6a33"></i></span><span class="bn"><span class="num" data-value="7">7</span></span></div><div class="br"><span class="bl cname">синеватый</span><span class="bt"><i style="--w:0.06122;--c:#4f6fa8"></i></span><span class="bn"><span class="num" data-value="6">6</span></span></div><div class="br"><span class="bl cname">рыжий</span><span class="bt"><i style="--w:0.06122;--c:#c0541f"></i></span><span class="bn"><span class="num" data-value="6">6</span></span></div></div></div>
-  </section>
-
-  <section class="floor two comp-floor">
-    <div class="text">
-      <h2 class="sub-h">Самый частый составной цвет</h2>
-      <p class="color-word">красно-синий</p>
-    </div>
-    <div class="data">
-      <div class="data-in reveal">
-        <div class="figure"><span class="num" data-value="3">3</span></div>
-        <div class="unit">упоминания</div>
-        <div class="pair2"><span class="fig2"><span class="num" data-value="44">44</span></span><span class="unit">составных цвета</span></div>
-        <div class="pair2"><span class="fig2"><span class="num" data-value="48">48</span></span><span class="unit">упоминаний</span></div>
+    <h2 class="sub-h">Цветовое разнообразие</h2>
+    <div class="cblock">
+      <div class="head">
+        <h3 class="sub-h3">Самый частый цвет</h3>
+        <div class="head-num"><span class="figure"><span class="num" data-value="98">98</span></span><span class="unit">упоминаний</span></div>
       </div>
+      <p class="color-word big" style="--c:#111111">черный</p>
     </div>
-  </section>
-
-  <section class="floor pal-floor">
-    <div class="head">
-      <h2 class="sub-h">Палитра Набокова</h2>
-      <div class="head-num"><span class="figure"><span class="num" data-value="75">75</span></span><span class="unit">цветов</span></div>
+    <div class="cblock">
+      <div class="head">
+        <h3 class="sub-h3">Самый частый составной цвет</h3>
+        <div class="head-num"><span class="figure"><span class="num" data-value="3">3</span></span><span class="unit">упоминания</span></div>
+      </div>
+      <p class="color-word">красно-синий</p>
+      <p class="cnote reveal"><span class="pair2"><span class="fig2"><span class="num" data-value="44">44</span></span><span class="unit">составных цвета</span></span><span class="pair2"><span class="fig2"><span class="num" data-value="48">48</span></span><span class="unit">упоминаний</span></span></p>
     </div>
-    <div class="pal reveal">
-      <p class="pal-read" aria-hidden="true"><span class="pal-def"><span class="num" data-value="548">548</span> упоминаний</span><span class="pal-on" hidden><i class="pal-sw"></i><span class="pal-n"></span><span class="pal-k"></span><span class="pal-p"></span></span></p>
-      <canvas class="pal-canvas" data-dots="0" aria-hidden="true"></canvas>
-      <div class="pal-strip" aria-hidden="true"><i style="--k:98;--c:#111111"></i><i class=lt style="--k:60;--c:#ffffff"></i><i style="--k:36;--c:#b3261e"></i><i style="--k:26;--c:#e3b505"></i><i style="--k:26;--c:#2f6b3a"></i><i style="--k:23;--c:#1f3c88"></i><i style="--k:23;--c:#e3a1b4"></i><i style="--k:22;--c:#8c8c8c"></i><i style="--k:21;--c:#c9a227"></i><i style="--k:15;--c:#7fb2dc"></i><i style="--k:11;--c:#6b4226"></i><i style="--k:10;--c:#d9731a"></i><i style="--k:9;--c:#b8b8b8"></i><i style="--k:7;--c:#9c6a33"></i><i style="--k:6;--c:#4f6fa8"></i><i style="--k:6;--c:#c0541f"></i><i style="--k:5;--c:#7a5a33"></i><i style="--k:5;--c:#a5482c"></i><i style="--k:5;--c:#7d8a9a"></i><i style="--k:5;--c:#2f7fbf"></i><i style="--k:5;--c:#b0662f"></i><i style="--k:5;--c:#5b3a8c"></i><i style="--k:5;--c:#3aa6a0"></i><i style="--k:5;--c:#c87a45"></i><i style="--k:4;--c:#e9e4dc"></i><i class=lt style="--k:4;--c:#f2eee3"></i><i style="--k:4;--c:#141414"></i><i style="--k:4;--c:#a8a39d"></i><i style="--k:4;--c:#222222"></i><i style="--k:4;--c:#e6cc6a"></i><i style="--k:4;--c:#9cc2e2"></i><i style="--k:4;--c:#8e6aa8"></i><i style="--k:3;--c:#a2471b"></i><i style="--k:3;--c:#4a6fd1"></i><i style="--k:3;--c:#e8d9b5"></i><i style="--k:3;--c:#6f4e37"></i><i style="--k:3;--c:#6b3a22"></i><i style="--k:3;--c:#8a7f72"></i><i style="--k:3;--c:#e6c3a8"></i><i style="--k:3;--c:#3d7fc4"></i><i style="--k:3;--c:#a61d4a"></i><i style="--k:3;--c:#d4af37"></i><i class=lt style="--k:3;--c:#ffffff"></i><i style="--k:2;--c:#1c1a17"></i><i style="--k:2;--c:#7a8590"></i><i style="--k:2;--c:#8c8c8c"></i><i style="--k:2;--c:#6e1423"></i><i style="--k:2;--c:#b7a0d4"></i><i style="--k:2;--c:#6f4e37"></i><i style="--k:2;--c:#9a9a9a"></i><i style="--k:2;--c:#1f7a52"></i><i style="--k:2;--c:#e9b8c4"></i><i class=lt style="--k:2;--c:#eeeeea"></i><i style="--k:2;--c:#c4c4c4"></i><i style="--k:2;--c:#d9971b"></i><i style="--k:1;--c:#f1e5c8"></i><i style="--k:1;--c:#d11a2a"></i><i style="--k:1;--c:#b0183a"></i><i style="--k:1;--c:#e4cf8c"></i><i style="--k:1;--c:#7a1c1c"></i><i style="--k:1;--c:#a8c47a"></i><i style="--k:1;--c:#c25a4e"></i><i style="--k:1;--c:#c08a3e"></i><i style="--k:1;--c:#4e2e1e"></i><i style="--k:1;--c:#8c5fa8"></i><i style="--k:1;--c:#d6c08f"></i><i style="--k:1;--c:#2a3f9e"></i><i style="--k:1;--c:#722f37"></i><i style="--k:1;--c:#7d1f5c"></i><i style="--k:1;--c:#a48bbd"></i><i style="--k:1;--c:#e8d33f"></i><i style="--k:1;--c:#f2a65a"></i><i style="--k:1;--c:#7b1e2a"></i><i style="--k:1;--c:#6f9a6a"></i><i style="--k:1;--c:#c98a2b"></i></div>
-      <div class="sr-only"><table><caption>Палитра Набокова</caption><tr><th scope="row">черный</th><td>98</td></tr><tr><th scope="row">белый</th><td>60</td></tr><tr><th scope="row">красный</th><td>36</td></tr><tr><th scope="row">желтый</th><td>26</td></tr><tr><th scope="row">зеленый</th><td>26</td></tr><tr><th scope="row">синий</th><td>23</td></tr><tr><th scope="row">розовый</th><td>23</td></tr><tr><th scope="row">серый</th><td>22</td></tr><tr><th scope="row">золотой</th><td>21</td></tr><tr><th scope="row">голубой</th><td>15</td></tr><tr><th scope="row">коричневый</th><td>11</td></tr><tr><th scope="row">оранжевый</th><td>10</td></tr><tr><th scope="row">серебряный</th><td>9</td></tr><tr><th scope="row">бронзовый</th><td>7</td></tr><tr><th scope="row">синеватый</th><td>6</td></tr><tr><th scope="row">рыжий</th><td>6</td></tr><tr><th scope="row">табачный</th><td>5</td></tr><tr><th scope="row">кирпичный</th><td>5</td></tr><tr><th scope="row">сизый</th><td>5</td></tr><tr><th scope="row">лазурный</th><td>5</td></tr><tr><th scope="row">медный</th><td>5</td></tr><tr><th scope="row">фиолетовый</th><td>5</td></tr><tr><th scope="row">бирюзовый</th><td>5</td></tr><tr><th scope="row">рыжеватый</th><td>5</td></tr><tr><th scope="row">перламутровый</th><td>4</td></tr><tr><th scope="row">молочный</th><td>4</td></tr><tr><th scope="row">вороной</th><td>4</td></tr><tr><th scope="row">пепельный</th><td>4</td></tr><tr><th scope="row">угольный</th><td>4</td></tr><tr><th scope="row">желтоватый</th><td>4</td></tr><tr><th scope="row">голубоватый</th><td>4</td></tr><tr><th scope="row">лиловый</th><td>4</td></tr><tr><th scope="row">ржавый</th><td>3</td></tr><tr><th scope="row">васильковый</th><td>3</td></tr><tr><th scope="row">палевый</th><td>3</td></tr><tr><th scope="row">кофейный</th><td>3</td></tr><tr><th scope="row">каштановый</th><td>3</td></tr><tr><th scope="row">пегий</th><td>3</td></tr><tr><th scope="row">телесный</th><td>3</td></tr><tr><th scope="row">лазоревый</th><td>3</td></tr><tr><th scope="row">малиновый</th><td>3</td></tr><tr><th scope="row">золотистый</th><td>3</td></tr><tr><th scope="row">беленький</th><td>3</td></tr><tr><th scope="row">смоляной</th><td>2</td></tr><tr><th scope="row">стальной</th><td>2</td></tr><tr><th scope="row">серенький</th><td>2</td></tr><tr><th scope="row">вишневый</th><td>2</td></tr><tr><th scope="row">сиреневый</th><td>2</td></tr><tr><th scope="row">бурый</th><td>2</td></tr><tr><th scope="row">дымчатый</th><td>2</td></tr><tr><th scope="row">изумрудный</th><td>2</td></tr><tr><th scope="row">розоватый</th><td>2</td></tr><tr><th scope="row">белесый</th><td>2</td></tr><tr><th scope="row">серебристый</th><td>2</td></tr><tr><th scope="row">янтарный</th><td>2</td></tr><tr><th scope="row">сливочный</th><td>1</td></tr><tr><th scope="row">алый</th><td>1</td></tr><tr><th scope="row">пунцовый</th><td>1</td></tr><tr><th scope="row">соломенный</th><td>1</td></tr><tr><th scope="row">багровый</th><td>1</td></tr><tr><th scope="row">фисташковый</th><td>1</td></tr><tr><th scope="row">красноватый</th><td>1</td></tr><tr><th scope="row">охряный</th><td>1</td></tr><tr><th scope="row">шоколадный</th><td>1</td></tr><tr><th scope="row">аметистовый</th><td>1</td></tr><tr><th scope="row">песочный</th><td>1</td></tr><tr><th scope="row">ультрамариновый</th><td>1</td></tr><tr><th scope="row">винный</th><td>1</td></tr><tr><th scope="row">пурпурный</th><td>1</td></tr><tr><th scope="row">лиловатый</th><td>1</td></tr><tr><th scope="row">лимонный</th><td>1</td></tr><tr><th scope="row">абрикосовый</th><td>1</td></tr><tr><th scope="row">гранатовый</th><td>1</td></tr><tr><th scope="row">зеленоватый</th><td>1</td></tr><tr><th scope="row">медовый</th><td>1</td></tr></table></div>
+    <div class="cblock reveal">
+      <h3 class="sub-h3">Частота цветов</h3>
+      <div class="bars colorbars"><div class="br"><span class="bl cname">черный</span><span class="bt"><i class="mt" style="--w:1.00000;--c:#111111"></i></span><span class="bn"><span class="num" data-value="98">98</span></span></div><div class="br"><span class="bl cname">белый</span><span class="bt"><i class="lt gl" style="--w:0.61224;--c:#ffffff"></i></span><span class="bn"><span class="num" data-value="60">60</span></span></div><div class="br"><span class="bl cname">красный</span><span class="bt"><i class="mt" style="--w:0.36735;--c:#b3261e"></i></span><span class="bn"><span class="num" data-value="36">36</span></span></div><div class="br"><span class="bl cname">желтый</span><span class="bt"><i class="gl" style="--w:0.26531;--c:#e3b505"></i></span><span class="bn"><span class="num" data-value="26">26</span></span></div><div class="br"><span class="bl cname">зеленый</span><span class="bt"><i class="mt" style="--w:0.26531;--c:#2f6b3a"></i></span><span class="bn"><span class="num" data-value="26">26</span></span></div><div class="br"><span class="bl cname">синий</span><span class="bt"><i class="mt" style="--w:0.23469;--c:#1f3c88"></i></span><span class="bn"><span class="num" data-value="23">23</span></span></div><div class="br"><span class="bl cname">розовый</span><span class="bt"><i class="gl" style="--w:0.23469;--c:#e3a1b4"></i></span><span class="bn"><span class="num" data-value="23">23</span></span></div><div class="br"><span class="bl cname">серый</span><span class="bt"><i class="mt" style="--w:0.22449;--c:#8c8c8c"></i></span><span class="bn"><span class="num" data-value="22">22</span></span></div><div class="br"><span class="bl cname">золотой</span><span class="bt"><i class="gl" style="--w:0.21429;--c:#c9a227"></i></span><span class="bn"><span class="num" data-value="21">21</span></span></div><div class="br"><span class="bl cname">голубой</span><span class="bt"><i class="gl" style="--w:0.15306;--c:#7fb2dc"></i></span><span class="bn"><span class="num" data-value="15">15</span></span></div><div class="br"><span class="bl cname">коричневый</span><span class="bt"><i class="mt" style="--w:0.11224;--c:#6b4226"></i></span><span class="bn"><span class="num" data-value="11">11</span></span></div><div class="br"><span class="bl cname">оранжевый</span><span class="bt"><i class="mt" style="--w:0.10204;--c:#d9731a"></i></span><span class="bn"><span class="num" data-value="10">10</span></span></div><div class="br"><span class="bl cname">серебряный</span><span class="bt"><i class="gl" style="--w:0.09184;--c:#b8b8b8"></i></span><span class="bn"><span class="num" data-value="9">9</span></span></div><div class="br"><span class="bl cname">бронзовый</span><span class="bt"><i class="mt" style="--w:0.07143;--c:#9c6a33"></i></span><span class="bn"><span class="num" data-value="7">7</span></span></div><div class="br"><span class="bl cname">синеватый</span><span class="bt"><i class="mt" style="--w:0.06122;--c:#4f6fa8"></i></span><span class="bn"><span class="num" data-value="6">6</span></span></div><div class="br"><span class="bl cname">рыжий</span><span class="bt"><i class="mt" style="--w:0.06122;--c:#c0541f"></i></span><span class="bn"><span class="num" data-value="6">6</span></span></div></div>
+    </div>
+    <div class="cblock">
+      <div class="head">
+        <h3 class="sub-h3">Палитра Набокова</h3>
+        <div class="head-num"><span class="figure"><span class="num" data-value="75">75</span></span><span class="unit">цветов</span></div>
+      </div>
+      <div class="pal reveal">
+        <p class="pal-read" aria-hidden="true"><span class="pal-def"><span class="num" data-value="548">548</span> упоминаний</span><span class="pal-on" hidden><i class="pal-sw"></i><span class="pal-n"></span><span class="pal-k"></span><span class="pal-p"></span></span></p>
+        <canvas class="pal-canvas" data-dots="0" aria-hidden="true"></canvas>
+        <div class="pal-strip" aria-hidden="true"><i style="--k:98;--c:#111111"></i><i class=lt style="--k:60;--c:#ffffff"></i><i style="--k:36;--c:#b3261e"></i><i style="--k:26;--c:#e3b505"></i><i style="--k:26;--c:#2f6b3a"></i><i style="--k:23;--c:#1f3c88"></i><i style="--k:23;--c:#e3a1b4"></i><i style="--k:22;--c:#8c8c8c"></i><i style="--k:21;--c:#c9a227"></i><i style="--k:15;--c:#7fb2dc"></i><i style="--k:11;--c:#6b4226"></i><i style="--k:10;--c:#d9731a"></i><i style="--k:9;--c:#b8b8b8"></i><i style="--k:7;--c:#9c6a33"></i><i style="--k:6;--c:#4f6fa8"></i><i style="--k:6;--c:#c0541f"></i><i style="--k:5;--c:#7a5a33"></i><i style="--k:5;--c:#a5482c"></i><i style="--k:5;--c:#7d8a9a"></i><i style="--k:5;--c:#2f7fbf"></i><i style="--k:5;--c:#b0662f"></i><i style="--k:5;--c:#5b3a8c"></i><i style="--k:5;--c:#3aa6a0"></i><i style="--k:5;--c:#c87a45"></i><i style="--k:4;--c:#e9e4dc"></i><i class=lt style="--k:4;--c:#f2eee3"></i><i style="--k:4;--c:#141414"></i><i style="--k:4;--c:#a8a39d"></i><i style="--k:4;--c:#222222"></i><i style="--k:4;--c:#e6cc6a"></i><i style="--k:4;--c:#9cc2e2"></i><i style="--k:4;--c:#8e6aa8"></i><i style="--k:3;--c:#a2471b"></i><i style="--k:3;--c:#4a6fd1"></i><i style="--k:3;--c:#e8d9b5"></i><i style="--k:3;--c:#6f4e37"></i><i style="--k:3;--c:#6b3a22"></i><i style="--k:3;--c:#8a7f72"></i><i style="--k:3;--c:#e6c3a8"></i><i style="--k:3;--c:#3d7fc4"></i><i style="--k:3;--c:#a61d4a"></i><i style="--k:3;--c:#d4af37"></i><i class=lt style="--k:3;--c:#ffffff"></i><i style="--k:2;--c:#1c1a17"></i><i style="--k:2;--c:#7a8590"></i><i style="--k:2;--c:#8c8c8c"></i><i style="--k:2;--c:#6e1423"></i><i style="--k:2;--c:#b7a0d4"></i><i style="--k:2;--c:#6f4e37"></i><i style="--k:2;--c:#9a9a9a"></i><i style="--k:2;--c:#1f7a52"></i><i style="--k:2;--c:#e9b8c4"></i><i class=lt style="--k:2;--c:#eeeeea"></i><i style="--k:2;--c:#c4c4c4"></i><i style="--k:2;--c:#d9971b"></i><i style="--k:1;--c:#f1e5c8"></i><i style="--k:1;--c:#d11a2a"></i><i style="--k:1;--c:#b0183a"></i><i style="--k:1;--c:#e4cf8c"></i><i style="--k:1;--c:#7a1c1c"></i><i style="--k:1;--c:#a8c47a"></i><i style="--k:1;--c:#c25a4e"></i><i style="--k:1;--c:#c08a3e"></i><i style="--k:1;--c:#4e2e1e"></i><i style="--k:1;--c:#8c5fa8"></i><i style="--k:1;--c:#d6c08f"></i><i style="--k:1;--c:#2a3f9e"></i><i style="--k:1;--c:#722f37"></i><i style="--k:1;--c:#7d1f5c"></i><i style="--k:1;--c:#a48bbd"></i><i style="--k:1;--c:#e8d33f"></i><i style="--k:1;--c:#f2a65a"></i><i style="--k:1;--c:#7b1e2a"></i><i style="--k:1;--c:#6f9a6a"></i><i style="--k:1;--c:#c98a2b"></i></div>
+        <div class="sr-only"><table><caption>Палитра Набокова</caption><tr><th scope="row">черный</th><td>98</td></tr><tr><th scope="row">белый</th><td>60</td></tr><tr><th scope="row">красный</th><td>36</td></tr><tr><th scope="row">желтый</th><td>26</td></tr><tr><th scope="row">зеленый</th><td>26</td></tr><tr><th scope="row">синий</th><td>23</td></tr><tr><th scope="row">розовый</th><td>23</td></tr><tr><th scope="row">серый</th><td>22</td></tr><tr><th scope="row">золотой</th><td>21</td></tr><tr><th scope="row">голубой</th><td>15</td></tr><tr><th scope="row">коричневый</th><td>11</td></tr><tr><th scope="row">оранжевый</th><td>10</td></tr><tr><th scope="row">серебряный</th><td>9</td></tr><tr><th scope="row">бронзовый</th><td>7</td></tr><tr><th scope="row">синеватый</th><td>6</td></tr><tr><th scope="row">рыжий</th><td>6</td></tr><tr><th scope="row">табачный</th><td>5</td></tr><tr><th scope="row">кирпичный</th><td>5</td></tr><tr><th scope="row">сизый</th><td>5</td></tr><tr><th scope="row">лазурный</th><td>5</td></tr><tr><th scope="row">медный</th><td>5</td></tr><tr><th scope="row">фиолетовый</th><td>5</td></tr><tr><th scope="row">бирюзовый</th><td>5</td></tr><tr><th scope="row">рыжеватый</th><td>5</td></tr><tr><th scope="row">перламутровый</th><td>4</td></tr><tr><th scope="row">молочный</th><td>4</td></tr><tr><th scope="row">вороной</th><td>4</td></tr><tr><th scope="row">пепельный</th><td>4</td></tr><tr><th scope="row">угольный</th><td>4</td></tr><tr><th scope="row">желтоватый</th><td>4</td></tr><tr><th scope="row">голубоватый</th><td>4</td></tr><tr><th scope="row">лиловый</th><td>4</td></tr><tr><th scope="row">ржавый</th><td>3</td></tr><tr><th scope="row">васильковый</th><td>3</td></tr><tr><th scope="row">палевый</th><td>3</td></tr><tr><th scope="row">кофейный</th><td>3</td></tr><tr><th scope="row">каштановый</th><td>3</td></tr><tr><th scope="row">пегий</th><td>3</td></tr><tr><th scope="row">телесный</th><td>3</td></tr><tr><th scope="row">лазоревый</th><td>3</td></tr><tr><th scope="row">малиновый</th><td>3</td></tr><tr><th scope="row">золотистый</th><td>3</td></tr><tr><th scope="row">беленький</th><td>3</td></tr><tr><th scope="row">смоляной</th><td>2</td></tr><tr><th scope="row">стальной</th><td>2</td></tr><tr><th scope="row">серенький</th><td>2</td></tr><tr><th scope="row">вишневый</th><td>2</td></tr><tr><th scope="row">сиреневый</th><td>2</td></tr><tr><th scope="row">бурый</th><td>2</td></tr><tr><th scope="row">дымчатый</th><td>2</td></tr><tr><th scope="row">изумрудный</th><td>2</td></tr><tr><th scope="row">розоватый</th><td>2</td></tr><tr><th scope="row">белесый</th><td>2</td></tr><tr><th scope="row">серебристый</th><td>2</td></tr><tr><th scope="row">янтарный</th><td>2</td></tr><tr><th scope="row">сливочный</th><td>1</td></tr><tr><th scope="row">алый</th><td>1</td></tr><tr><th scope="row">пунцовый</th><td>1</td></tr><tr><th scope="row">соломенный</th><td>1</td></tr><tr><th scope="row">багровый</th><td>1</td></tr><tr><th scope="row">фисташковый</th><td>1</td></tr><tr><th scope="row">красноватый</th><td>1</td></tr><tr><th scope="row">охряный</th><td>1</td></tr><tr><th scope="row">шоколадный</th><td>1</td></tr><tr><th scope="row">аметистовый</th><td>1</td></tr><tr><th scope="row">песочный</th><td>1</td></tr><tr><th scope="row">ультрамариновый</th><td>1</td></tr><tr><th scope="row">винный</th><td>1</td></tr><tr><th scope="row">пурпурный</th><td>1</td></tr><tr><th scope="row">лиловатый</th><td>1</td></tr><tr><th scope="row">лимонный</th><td>1</td></tr><tr><th scope="row">абрикосовый</th><td>1</td></tr><tr><th scope="row">гранатовый</th><td>1</td></tr><tr><th scope="row">зеленоватый</th><td>1</td></tr><tr><th scope="row">медовый</th><td>1</td></tr></table></div>
+      </div>
     </div>
     <script type="application/json" id="pal-data">[{"n": "черный", "c": "#111111", "k": 98, "kn": "98", "ku": "упоминаний", "pn": "17,883"}, {"n": "белый", "c": "#ffffff", "k": 60, "kn": "60", "ku": "упоминаний", "pn": "10,949"}, {"n": "красный", "c": "#b3261e", "k": 36, "kn": "36", "ku": "упоминаний", "pn": "6,569"}, {"n": "желтый", "c": "#e3b505", "k": 26, "kn": "26", "ku": "упоминаний", "pn": "4,745"}, {"n": "зеленый", "c": "#2f6b3a", "k": 26, "kn": "26", "ku": "упоминаний", "pn": "4,745"}, {"n": "синий", "c": "#1f3c88", "k": 23, "kn": "23", "ku": "упоминания", "pn": "4,197"}, {"n": "розовый", "c": "#e3a1b4", "k": 23, "kn": "23", "ku": "упоминания", "pn": "4,197"}, {"n": "серый", "c": "#8c8c8c", "k": 22, "kn": "22", "ku": "упоминания", "pn": "4,015"}, {"n": "золотой", "c": "#c9a227", "k": 21, "kn": "21", "ku": "упоминание", "pn": "3,832"}, {"n": "голубой", "c": "#7fb2dc", "k": 15, "kn": "15", "ku": "упоминаний", "pn": "2,737"}, {"n": "коричневый", "c": "#6b4226", "k": 11, "kn": "11", "ku": "упоминаний", "pn": "2,007"}, {"n": "оранжевый", "c": "#d9731a", "k": 10, "kn": "10", "ku": "упоминаний", "pn": "1,825"}, {"n": "серебряный", "c": "#b8b8b8", "k": 9, "kn": "9", "ku": "упоминаний", "pn": "1,642"}, {"n": "бронзовый", "c": "#9c6a33", "k": 7, "kn": "7", "ku": "упоминаний", "pn": "1,277"}, {"n": "синеватый", "c": "#4f6fa8", "k": 6, "kn": "6", "ku": "упоминаний", "pn": "1,095"}, {"n": "рыжий", "c": "#c0541f", "k": 6, "kn": "6", "ku": "упоминаний", "pn": "1,095"}, {"n": "табачный", "c": "#7a5a33", "k": 5, "kn": "5", "ku": "упоминаний", "pn": "0,912"}, {"n": "кирпичный", "c": "#a5482c", "k": 5, "kn": "5", "ku": "упоминаний", "pn": "0,912"}, {"n": "сизый", "c": "#7d8a9a", "k": 5, "kn": "5", "ku": "упоминаний", "pn": "0,912"}, {"n": "лазурный", "c": "#2f7fbf", "k": 5, "kn": "5", "ku": "упоминаний", "pn": "0,912"}, {"n": "медный", "c": "#b0662f", "k": 5, "kn": "5", "ku": "упоминаний", "pn": "0,912"}, {"n": "фиолетовый", "c": "#5b3a8c", "k": 5, "kn": "5", "ku": "упоминаний", "pn": "0,912"}, {"n": "бирюзовый", "c": "#3aa6a0", "k": 5, "kn": "5", "ku": "упоминаний", "pn": "0,912"}, {"n": "рыжеватый", "c": "#c87a45", "k": 5, "kn": "5", "ku": "упоминаний", "pn": "0,912"}, {"n": "перламутровый", "c": "#e9e4dc", "k": 4, "kn": "4", "ku": "упоминания", "pn": "0,730"}, {"n": "молочный", "c": "#f2eee3", "k": 4, "kn": "4", "ku": "упоминания", "pn": "0,730"}, {"n": "вороной", "c": "#141414", "k": 4, "kn": "4", "ku": "упоминания", "pn": "0,730"}, {"n": "пепельный", "c": "#a8a39d", "k": 4, "kn": "4", "ku": "упоминания", "pn": "0,730"}, {"n": "угольный", "c": "#222222", "k": 4, "kn": "4", "ku": "упоминания", "pn": "0,730"}, {"n": "желтоватый", "c": "#e6cc6a", "k": 4, "kn": "4", "ku": "упоминания", "pn": "0,730"}, {"n": "голубоватый", "c": "#9cc2e2", "k": 4, "kn": "4", "ku": "упоминания", "pn": "0,730"}, {"n": "лиловый", "c": "#8e6aa8", "k": 4, "kn": "4", "ku": "упоминания", "pn": "0,730"}, {"n": "ржавый", "c": "#a2471b", "k": 3, "kn": "3", "ku": "упоминания", "pn": "0,547"}, {"n": "васильковый", "c": "#4a6fd1", "k": 3, "kn": "3", "ku": "упоминания", "pn": "0,547"}, {"n": "палевый", "c": "#e8d9b5", "k": 3, "kn": "3", "ku": "упоминания", "pn": "0,547"}, {"n": "кофейный", "c": "#6f4e37", "k": 3, "kn": "3", "ku": "упоминания", "pn": "0,547"}, {"n": "каштановый", "c": "#6b3a22", "k": 3, "kn": "3", "ku": "упоминания", "pn": "0,547"}, {"n": "пегий", "c": "#8a7f72", "k": 3, "kn": "3", "ku": "упоминания", "pn": "0,547"}, {"n": "телесный", "c": "#e6c3a8", "k": 3, "kn": "3", "ku": "упоминания", "pn": "0,547"}, {"n": "лазоревый", "c": "#3d7fc4", "k": 3, "kn": "3", "ku": "упоминания", "pn": "0,547"}, {"n": "малиновый", "c": "#a61d4a", "k": 3, "kn": "3", "ku": "упоминания", "pn": "0,547"}, {"n": "золотистый", "c": "#d4af37", "k": 3, "kn": "3", "ku": "упоминания", "pn": "0,547"}, {"n": "беленький", "c": "#ffffff", "k": 3, "kn": "3", "ku": "упоминания", "pn": "0,547"}, {"n": "смоляной", "c": "#1c1a17", "k": 2, "kn": "2", "ku": "упоминания", "pn": "0,365"}, {"n": "стальной", "c": "#7a8590", "k": 2, "kn": "2", "ku": "упоминания", "pn": "0,365"}, {"n": "серенький", "c": "#8c8c8c", "k": 2, "kn": "2", "ku": "упоминания", "pn": "0,365"}, {"n": "вишневый", "c": "#6e1423", "k": 2, "kn": "2", "ku": "упоминания", "pn": "0,365"}, {"n": "сиреневый", "c": "#b7a0d4", "k": 2, "kn": "2", "ku": "упоминания", "pn": "0,365"}, {"n": "бурый", "c": "#6f4e37", "k": 2, "kn": "2", "ku": "упоминания", "pn": "0,365"}, {"n": "дымчатый", "c": "#9a9a9a", "k": 2, "kn": "2", "ku": "упоминания", "pn": "0,365"}, {"n": "изумрудный", "c": "#1f7a52", "k": 2, "kn": "2", "ku": "упоминания", "pn": "0,365"}, {"n": "розоватый", "c": "#e9b8c4", "k": 2, "kn": "2", "ku": "упоминания", "pn": "0,365"}, {"n": "белесый", "c": "#eeeeea", "k": 2, "kn": "2", "ku": "упоминания", "pn": "0,365"}, {"n": "серебристый", "c": "#c4c4c4", "k": 2, "kn": "2", "ku": "упоминания", "pn": "0,365"}, {"n": "янтарный", "c": "#d9971b", "k": 2, "kn": "2", "ku": "упоминания", "pn": "0,365"}, {"n": "сливочный", "c": "#f1e5c8", "k": 1, "kn": "1", "ku": "упоминание", "pn": "0,182"}, {"n": "алый", "c": "#d11a2a", "k": 1, "kn": "1", "ku": "упоминание", "pn": "0,182"}, {"n": "пунцовый", "c": "#b0183a", "k": 1, "kn": "1", "ku": "упоминание", "pn": "0,182"}, {"n": "соломенный", "c": "#e4cf8c", "k": 1, "kn": "1", "ku": "упоминание", "pn": "0,182"}, {"n": "багровый", "c": "#7a1c1c", "k": 1, "kn": "1", "ku": "упоминание", "pn": "0,182"}, {"n": "фисташковый", "c": "#a8c47a", "k": 1, "kn": "1", "ku": "упоминание", "pn": "0,182"}, {"n": "красноватый", "c": "#c25a4e", "k": 1, "kn": "1", "ku": "упоминание", "pn": "0,182"}, {"n": "охряный", "c": "#c08a3e", "k": 1, "kn": "1", "ku": "упоминание", "pn": "0,182"}, {"n": "шоколадный", "c": "#4e2e1e", "k": 1, "kn": "1", "ku": "упоминание", "pn": "0,182"}, {"n": "аметистовый", "c": "#8c5fa8", "k": 1, "kn": "1", "ku": "упоминание", "pn": "0,182"}, {"n": "песочный", "c": "#d6c08f", "k": 1, "kn": "1", "ku": "упоминание", "pn": "0,182"}, {"n": "ультрамариновый", "c": "#2a3f9e", "k": 1, "kn": "1", "ku": "упоминание", "pn": "0,182"}, {"n": "винный", "c": "#722f37", "k": 1, "kn": "1", "ku": "упоминание", "pn": "0,182"}, {"n": "пурпурный", "c": "#7d1f5c", "k": 1, "kn": "1", "ku": "упоминание", "pn": "0,182"}, {"n": "лиловатый", "c": "#a48bbd", "k": 1, "kn": "1", "ku": "упоминание", "pn": "0,182"}, {"n": "лимонный", "c": "#e8d33f", "k": 1, "kn": "1", "ku": "упоминание", "pn": "0,182"}, {"n": "абрикосовый", "c": "#f2a65a", "k": 1, "kn": "1", "ku": "упоминание", "pn": "0,182"}, {"n": "гранатовый", "c": "#7b1e2a", "k": 1, "kn": "1", "ku": "упоминание", "pn": "0,182"}, {"n": "зеленоватый", "c": "#6f9a6a", "k": 1, "kn": "1", "ku": "упоминание", "pn": "0,182"}, {"n": "медовый", "c": "#c98a2b", "k": 1, "kn": "1", "ku": "упоминание", "pn": "0,182"}]</script>
   </section>
